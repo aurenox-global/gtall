@@ -2,14 +2,33 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="theme-color" content="#1a1a2e">
+    <meta name="msapplication-TileColor" content="#1a1a2e">
     <title>Complete Trading Platform - Grid Bots & Manual Trading</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+        }
+
+        /* Optimizaciones específicas para WebView móvil */
+        html {
+            -webkit-text-size-adjust: 100%;
+            -ms-text-size-adjust: 100%;
+            touch-action: manipulation;
         }
 
         body {
@@ -17,7 +36,18 @@
             background: linear-gradient(135deg, #1a1a2e, #16213e, #0f3460);
             color: #ffffff;
             min-height: 100vh;
-            padding: 20px;
+            min-height: -webkit-fill-available;
+            padding: 10px;
+            overflow-x: hidden;
+            -webkit-overflow-scrolling: touch;
+            -ms-overflow-style: -ms-autohiding-scrollbar;
+        }
+        
+        /* Optimización para WebView de Telegram */
+        @media screen and (max-width: 480px) {
+            body {
+                padding: 5px;
+            }
         }
 
         .main-header {
@@ -38,6 +68,19 @@
             align-items: center;
             justify-content: center;
             gap: 15px;
+            flex-wrap: wrap;
+        }
+        
+        @media screen and (max-width: 480px) {
+            .main-header h1 {
+                font-size: 24px;
+                gap: 10px;
+            }
+            
+            .main-header {
+                padding: 15px;
+                margin-bottom: 20px;
+            }
         }
 
         .crypto-icon {
@@ -62,6 +105,15 @@
             justify-content: center;
             gap: 10px;
             margin-bottom: 30px;
+            flex-wrap: wrap;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+        }
+        
+        .tab-navigation::-webkit-scrollbar {
+            display: none;
         }
 
         .tab-btn {
@@ -76,6 +128,36 @@
             font-weight: 600;
             text-align: center;
             min-width: 140px;
+            flex-shrink: 0;
+            touch-action: manipulation;
+        }
+        
+        @media screen and (max-width: 768px) {
+            .tab-navigation {
+                gap: 5px;
+                margin-bottom: 20px;
+                padding: 0 5px;
+            }
+            
+            .tab-btn {
+                padding: 10px 16px;
+                min-width: 110px;
+                font-size: 12px;
+            }
+        }
+        
+        @media screen and (max-width: 480px) {
+            .tab-navigation {
+                justify-content: flex-start;
+                gap: 8px;
+            }
+            
+            .tab-btn {
+                padding: 8px 12px;
+                min-width: 90px;
+                font-size: 11px;
+                border-radius: 8px;
+            }
         }
 
         .tab-btn.active {
@@ -289,6 +371,19 @@
             color: #ffffff;
             font-size: 16px;
             transition: all 0.3s ease;
+            touch-action: manipulation;
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            appearance: none;
+            min-height: 44px;
+        }
+        
+        @media screen and (max-width: 480px) {
+            input, select {
+                padding: 14px 12px;
+                font-size: 16px; /* Evita zoom en iOS */
+                min-height: 48px;
+            }
         }
 
         input:focus, select:focus {
@@ -301,6 +396,14 @@
             display: flex;
             gap: 15px;
             margin-top: 30px;
+            flex-wrap: wrap;
+        }
+        
+        @media screen and (max-width: 480px) {
+            .button-group {
+                gap: 10px;
+                margin-top: 20px;
+            }
         }
 
         button {
@@ -314,6 +417,19 @@
             transition: all 0.3s ease;
             text-transform: uppercase;
             letter-spacing: 1px;
+            touch-action: manipulation;
+            min-height: 44px;
+            min-width: 44px;
+            -webkit-tap-highlight-color: transparent;
+        }
+        
+        @media screen and (max-width: 480px) {
+            button {
+                padding: 16px 20px;
+                min-height: 48px;
+                font-size: 14px;
+                letter-spacing: 0.5px;
+            }
         }
 
         .btn-start, .btn-buy {
@@ -1388,6 +1504,38 @@
 
             .mobile-visible {
                 display: block !important;
+            }
+        }
+        
+        /* Optimizaciones específicas para Telegram WebView */
+        @supports (height: 100dvh) {
+            body {
+                min-height: 100dvh;
+            }
+        }
+        
+        /* Mejoras de rendimiento para WebView */
+        * {
+            will-change: auto;
+        }
+        
+        .tab-content {
+            contain: layout style paint;
+        }
+        
+        /* Optimización para scroll en WebView */
+        .scrollable {
+            -webkit-overflow-scrolling: touch;
+            overscroll-behavior: contain;
+        }
+        
+        /* Fix para SafeArea en dispositivos móviles */
+        @supports (padding-top: env(safe-area-inset-top)) {
+            body {
+                padding-top: calc(10px + env(safe-area-inset-top));
+                padding-bottom: calc(10px + env(safe-area-inset-bottom));
+                padding-left: calc(10px + env(safe-area-inset-left));
+                padding-right: calc(10px + env(safe-area-inset-right));
             }
         }
     </style>
@@ -2521,6 +2669,53 @@
     </div>
 
     <script>
+        // Telegram WebApp Initialization
+        let tg = null;
+        let isInTelegram = false;
+        
+        function initTelegramWebApp() {
+            if (typeof Telegram !== 'undefined' && Telegram.WebApp) {
+                tg = Telegram.WebApp;
+                isInTelegram = true;
+                
+                // Configurar la webapp
+                tg.ready();
+                tg.expand();
+                
+                // Configurar colores del tema
+                if (tg.themeParams) {
+                    document.documentElement.style.setProperty('--tg-color-scheme', tg.colorScheme);
+                    document.documentElement.style.setProperty('--tg-theme-bg-color', tg.themeParams.bg_color || '#1a1a2e');
+                    document.documentElement.style.setProperty('--tg-theme-text-color', tg.themeParams.text_color || '#ffffff');
+                    document.documentElement.style.setProperty('--tg-theme-hint-color', tg.themeParams.hint_color || '#bdc3c7');
+                    document.documentElement.style.setProperty('--tg-theme-link-color', tg.themeParams.link_color || '#3498db');
+                    document.documentElement.style.setProperty('--tg-theme-button-color', tg.themeParams.button_color || '#3498db');
+                    document.documentElement.style.setProperty('--tg-theme-button-text-color', tg.themeParams.button_text_color || '#ffffff');
+                }
+                
+                // Configurar viewport específico para Telegram
+                tg.setHeaderColor('#1a1a2e');
+                
+                // Habilitar confirmación al cerrar
+                tg.enableClosingConfirmation();
+                
+                // Eventos específicos de Telegram
+                tg.onEvent('viewportChanged', function() {
+                    window.dispatchEvent(new Event('resize'));
+                });
+                
+                // Configurar Main Button si es necesario
+                tg.MainButton.hide();
+                
+                console.log('Telegram WebApp inicializado correctamente');
+            }
+        }
+        
+        // Inicializar cuando la página esté lista
+        document.addEventListener('DOMContentLoaded', function() {
+            initTelegramWebApp();
+        });
+        
         // Data Persistence Manager
         class DataManager {
             static saveData(key, data) {
@@ -7156,6 +7351,87 @@
                 console.error('Error during application initialization:', error);
             }
         });
+        
+        // Optimizaciones específicas para WebView de Telegram
+        function optimizeForWebView() {
+            // Optimizar scroll performance
+            if ('scrollBehavior' in document.documentElement.style) {
+                document.documentElement.style.scrollBehavior = 'smooth';
+            }
+            
+            // Lazy loading para imágenes (si las hay)
+            const images = document.querySelectorAll('img[data-src]');
+            if ('IntersectionObserver' in window) {
+                const imageObserver = new IntersectionObserver((entries, observer) => {
+                    entries.forEach(entry => {
+                        if (entry.isIntersecting) {
+                            const img = entry.target;
+                            img.src = img.dataset.src;
+                            img.classList.remove('lazy');
+                            imageObserver.unobserve(img);
+                        }
+                    });
+                });
+                images.forEach(img => imageObserver.observe(img));
+            }
+            
+            // Optimizar performance en dispositivos con batería baja
+            if ('getBattery' in navigator) {
+                navigator.getBattery().then(battery => {
+                    if (battery.level < 0.2) {
+                        // Reducir animaciones cuando la batería esté baja
+                        document.documentElement.style.setProperty('--animation-duration', '0.1s');
+                    }
+                }).catch(() => {
+                    // getBattery no disponible, continuar normalmente
+                });
+            }
+            
+            // Optimizar memory usage
+            let lastScrollTime = 0;
+            window.addEventListener('scroll', function() {
+                const now = Date.now();
+                if (now - lastScrollTime > 16) { // 60fps throttling
+                    lastScrollTime = now;
+                    requestAnimationFrame(() => {
+                        // Actualizar elementos visibles solo si es necesario
+                    });
+                }
+            }, { passive: true });
+            
+            // Optimizar touch events para mejor responsividad
+            document.addEventListener('touchstart', function() {}, { passive: true });
+            document.addEventListener('touchmove', function() {}, { passive: true });
+            
+            // Configurar preconnect para recursos externos cuando sea necesario
+            if (isInTelegram) {
+                const preconnectLink = document.createElement('link');
+                preconnectLink.rel = 'preconnect';
+                preconnectLink.href = 'https://api.binance.com';
+                document.head.appendChild(preconnectLink);
+            }
+            
+            // Configurar viewport height fix para móviles
+            function setViewportHeight() {
+                const vh = window.innerHeight * 0.01;
+                document.documentElement.style.setProperty('--vh', `${vh}px`);
+            }
+            
+            setViewportHeight();
+            window.addEventListener('resize', setViewportHeight);
+            window.addEventListener('orientationchange', setViewportHeight);
+        }
+        
+        // Ejecutar optimizaciones después de la carga
+        window.addEventListener('load', optimizeForWebView);
+        
+        // Performance monitoring para desarrollo
+        if (typeof console !== 'undefined' && console.log) {
+            console.log('Trading Platform optimizado para Telegram WebView');
+            console.log('Telegram WebApp disponible:', typeof Telegram !== 'undefined' && !!Telegram.WebApp);
+            console.log('Viewport size:', window.innerWidth + 'x' + window.innerHeight);
+            console.log('User agent:', navigator.userAgent);
+        }
     </script>
 </body>
 </html>
