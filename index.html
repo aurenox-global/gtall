@@ -57,149 +57,6 @@
             font-size: 16px;
         }
 
-        /* Main Menu Styles for Telegram */
-        .main-menu {
-            margin: 20px auto;
-            max-width: 400px;
-            padding: 0 15px;
-        }
-        
-        .menu-container {
-            background: rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(15px);
-            border-radius: 20px;
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            padding: 30px;
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
-        }
-        
-        .menu-header {
-            text-align: center;
-            margin-bottom: 30px;
-        }
-        
-        .menu-header h2 {
-            color: #f39c12;
-            font-size: 24px;
-            font-weight: 700;
-            margin-bottom: 8px;
-        }
-        
-        .menu-header p {
-            color: #bdc3c7;
-            font-size: 14px;
-            opacity: 0.8;
-        }
-        
-        .menu-buttons {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 15px;
-            margin-bottom: 20px;
-        }
-        
-        .menu-btn {
-            background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
-            border: 2px solid rgba(255, 255, 255, 0.1);
-            border-radius: 15px;
-            padding: 20px 15px;
-            color: #ffffff;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            min-height: 100px;
-            transition: all 0.3s ease;
-            cursor: pointer;
-            font-family: inherit;
-        }
-        
-        .menu-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
-            border-color: rgba(255, 255, 255, 0.3);
-        }
-        
-        .menu-btn:active {
-            transform: translateY(0);
-        }
-        
-        .menu-emoji {
-            font-size: 28px;
-            margin-bottom: 8px;
-            display: block;
-        }
-        
-        .menu-title {
-            font-size: 14px;
-            font-weight: 600;
-            text-align: center;
-            line-height: 1.2;
-        }
-        
-        .menu-subtitle {
-            font-size: 11px;
-            color: #bdc3c7;
-            margin-top: 4px;
-            opacity: 0.8;
-        }
-        
-        /* Colores específicos para cada botón del menú */
-        .spot-grid-btn {
-            background: linear-gradient(135deg, #3498db 0%, #2980b9 100%) !important;
-        }
-        
-        .spot-grid-btn:hover {
-            box-shadow: 0 10px 25px rgba(52, 152, 219, 0.3) !important;
-        }
-        
-        .futures-grid-btn {
-            background: linear-gradient(135deg, #9b59b6 0%, #8e44ad 100%) !important;
-        }
-        
-        .futures-grid-btn:hover {
-            box-shadow: 0 10px 25px rgba(155, 89, 182, 0.3) !important;
-        }
-        
-        .manual-spot-btn {
-            background: linear-gradient(135deg, #27ae60 0%, #229954 100%) !important;
-        }
-        
-        .manual-spot-btn:hover {
-            box-shadow: 0 10px 25px rgba(39, 174, 96, 0.3) !important;
-        }
-        
-        .manual-futures-btn {
-            background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%) !important;
-        }
-        
-        .manual-futures-btn:hover {
-            box-shadow: 0 10px 25px rgba(231, 76, 60, 0.3) !important;
-        }
-        
-        .menu-footer {
-            text-align: center;
-            margin-top: 20px;
-            padding-top: 20px;
-            border-top: 1px solid rgba(255, 255, 255, 0.1);
-        }
-        
-        .back-to-overview {
-            background: linear-gradient(135deg, #34495e 0%, #2c3e50 100%);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            border-radius: 10px;
-            padding: 10px 20px;
-            color: #ffffff;
-            cursor: pointer;
-            font-size: 14px;
-            transition: all 0.3s ease;
-        }
-        
-        .back-to-overview:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
-        }
-
         .tab-navigation {
             display: flex;
             justify-content: center;
@@ -1473,80 +1330,22 @@
                 gap: 6px;
                 padding: 10px;
             }
-        }
+            
+            .tab-btn {
+                min-width: 90px;
+                font-size: 11px;
+                padding: 8px 12px;
+            }
 
-        /* Responsive styles for Telegram Mobile */
-        @media (max-width: 480px) {
-            .main-menu {
-                margin: 10px;
-                padding: 0 10px;
+            .portfolio-grid {
+                grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+                gap: 15px;
             }
-            
-            .menu-container {
-                padding: 20px;
-            }
-            
-            .menu-buttons {
-                gap: 12px;
-            }
-            
-            .menu-btn {
-                min-height: 80px;
-                padding: 15px 10px;
-            }
-            
-            .menu-emoji {
-                font-size: 24px;
-                margin-bottom: 6px;
-            }
-            
-            .menu-title {
-                font-size: 13px;
-            }
-            
-            .menu-subtitle {
-                font-size: 10px;
-            }
-            
-            .menu-header h2 {
-                font-size: 20px;
-            }
-            
-            .container, .manual-container {
-                margin: 10px;
-                padding: 15px;
-            }
-            
-            .back-to-overview {
-                padding: 8px 15px;
-                font-size: 12px;
+
+            .order-type-grid {
+                grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
             }
         }
-
-        /* Animation styles */
-        @keyframes fadeInUp {
-            from {
-                opacity: 0;
-                transform: translateY(30px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        .menu-container {
-            animation: fadeInUp 0.6s ease-out;
-        }
-
-        .menu-btn {
-            animation: fadeInUp 0.6s ease-out;
-        }
-
-        .menu-btn:nth-child(1) { animation-delay: 0.1s; }
-        .menu-btn:nth-child(2) { animation-delay: 0.2s; }
-        .menu-btn:nth-child(3) { animation-delay: 0.3s; }
-        .menu-btn:nth-child(4) { animation-delay: 0.4s; }
 
         @media (max-width: 768px) {
             body {
@@ -1607,69 +1406,25 @@
         </div>
     </div>
 
-    <!-- MENU PRINCIPAL TELEGRAM -->
-    <div class="main-menu" id="mainMenu">
-        <div class="menu-container">
-            <div class="menu-header">
-                <h2>🤖 Trading Bot</h2>
-                <p>Selecciona tu estrategia de trading</p>
-            </div>
-            
-            <div class="menu-buttons">
-                <button class="menu-btn spot-grid-btn" onclick="showSection('spot-grid')">
-                    <span class="menu-emoji">📊</span>
-                    <span class="menu-title">Spot Grid</span>
-                    <span class="menu-subtitle">Trading automático</span>
-                </button>
-                
-                <button class="menu-btn futures-grid-btn" onclick="showSection('futures-grid')">
-                    <span class="menu-emoji">⚡</span>
-                    <span class="menu-title">Futures Grid</span>
-                    <span class="menu-subtitle">Trading automático</span>
-                </button>
-                
-                <button class="menu-btn manual-spot-btn" onclick="showSection('manual-spot')">
-                    <span class="menu-emoji">🎯</span>
-                    <span class="menu-title">Manual Spot</span>
-                    <span class="menu-subtitle">Control total</span>
-                </button>
-                
-                <button class="menu-btn manual-futures-btn" onclick="showSection('manual-futures')">
-                    <span class="menu-emoji">🚀</span>
-                    <span class="menu-title">Manual Futures</span>
-                    <span class="menu-subtitle">Control total</span>
-                </button>
-            </div>
-            
-            <div class="menu-footer">
-                <button class="back-to-overview" onclick="showAllSections()" style="display: none;">
-                    ↩️ Ver Todo
-                </button>
-            </div>
-        </div>
-    </div>
-
-    <!-- TAB NAVIGATION (Hidden by default) -->
-    <div class="tab-navigation" style="display: none;">
+    <div class="tab-navigation">
         <div class="tab-btn active" data-tab="spot-grid">📊 Spot Grid</div>
         <div class="tab-btn" data-tab="futures-grid">⚡ Futures Grid</div>
         <div class="tab-btn" data-tab="manual-spot">🎯 Manual Spot</div>
         <div class="tab-btn" data-tab="manual-futures">🚀 Manual Futures</div>
+        <div class="tab-btn" data-tab="dca-bot">💰 DCA Bot</div>
+        <div class="tab-btn" data-tab="portfolio">📈 Portfolio</div>
+        <div class="tab-btn" data-tab="analytics">📊 Analytics</div>
+        <div class="tab-btn" data-tab="alerts">🔔 Alerts</div>
     </div>
 
     <!-- SPOT GRID BOT SECTION -->
-    <div id="spot-grid" class="tab-content" style="display: none;">
+    <div id="spot-grid" class="tab-content active">
         <div class="container">
             <div class="control-panel">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px;">
-                    <h2 class="section-title" style="margin-bottom: 0;">
-                        <div class="section-icon">₿</div>
-                        Grid Trading Bot
-                    </h2>
-                    <button onclick="showAllSections()" class="back-to-overview" style="display: inline-block;">
-                        ← Menú Principal
-                    </button>
-                </div>
+                <h2 class="section-title">
+                    <div class="section-icon">₿</div>
+                    Grid Trading Bot
+                </h2>
                 
                 <div class="form-group">
                     <label for="symbol-spot">Selección de Moneda</label>
@@ -1821,18 +1576,13 @@
     </div>
 
     <!-- FUTURES GRID BOT SECTION -->
-    <div id="futures-grid" class="tab-content" style="display: none;">
+    <div id="futures-grid" class="tab-content">
         <div class="container">
             <div class="control-panel">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px;">
-                    <h2 class="section-title" style="margin-bottom: 0;">
-                        <div class="section-icon">⚡</div>
-                        Futures Grid Bot
-                    </h2>
-                    <button onclick="showAllSections()" class="back-to-overview" style="display: inline-block;">
-                        ← Menú Principal
-                    </button>
-                </div>
+                <h2 class="section-title">
+                    <div class="section-icon">⚡</div>
+                    Futures Grid Bot
+                </h2>
                 
                 <div class="form-group">
                     <label for="symbol-futures">Par de Trading</label>
@@ -2001,18 +1751,13 @@
     </div>
 
     <!-- MANUAL SPOT TRADING SECTION -->
-    <div id="manual-spot" class="tab-content" style="display: none;">
+    <div id="manual-spot" class="tab-content">
         <div class="manual-container">
             <div class="order-panel">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px;">
-                    <h2 class="section-title" style="margin-bottom: 0;">
-                        <div class="section-icon">🎯</div>
-                        Manual Spot Trading
-                    </h2>
-                    <button onclick="showAllSections()" class="back-to-overview" style="display: inline-block;">
-                        ← Menú Principal
-                    </button>
-                </div>
+                <h2 class="section-title">
+                    <div class="section-icon">🎯</div>
+                    Manual Spot Trading
+                </h2>
 
                 <div class="form-group">
                     <label for="symbol-manual-spot">Par de Trading</label>
@@ -2164,18 +1909,13 @@
     </div>
 
     <!-- MANUAL FUTURES TRADING SECTION -->
-    <div id="manual-futures" class="tab-content" style="display: none;">
+    <div id="manual-futures" class="tab-content">
         <div class="manual-container">
             <div class="order-panel">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px;">
-                    <h2 class="section-title" style="margin-bottom: 0;">
-                        <div class="section-icon">🚀</div>
-                        Manual Futures Trading
-                    </h2>
-                    <button onclick="showAllSections()" class="back-to-overview" style="display: inline-block;">
-                        ← Menú Principal
-                    </button>
-                </div>
+                <h2 class="section-title">
+                    <div class="section-icon">🚀</div>
+                    Manual Futures Trading
+                </h2>
 
                 <div class="form-group">
                     <label for="symbol-manual-futures">Par de Trading</label>
@@ -2300,8 +2040,8 @@
         </div>
     </div>
 
-    <!-- DCA BOT SECTION (HIDDEN) -->
-    <div id="dca-bot" class="tab-content" style="display: none !important; visibility: hidden;">
+    <!-- DCA BOT SECTION -->
+    <div id="dca-bot" class="tab-content">
         <div class="container">
             <div class="control-panel">
                 <h2 class="section-title">
@@ -2400,8 +2140,8 @@
         </div>
     </div>
 
-    <!-- PORTFOLIO DASHBOARD SECTION (HIDDEN) -->
-    <div id="portfolio" class="tab-content" style="display: none !important; visibility: hidden;">
+    <!-- PORTFOLIO DASHBOARD SECTION -->
+    <div id="portfolio" class="tab-content">
         <!-- Header with Controls -->
         <div class="portfolio-header">
             <h2 class="section-title">
@@ -2575,8 +2315,8 @@
         </div>
     </div>
 
-    <!-- ANALYTICS SECTION (HIDDEN) -->
-    <div id="analytics" class="tab-content" style="display: none !important; visibility: hidden;">
+    <!-- ANALYTICS SECTION -->
+    <div id="analytics" class="tab-content">
         <div class="container">
             <div class="control-panel">
                 <h2 class="section-title">
@@ -2669,8 +2409,8 @@
         </div>
     </div>
 
-    <!-- ALERTS SYSTEM SECTION (HIDDEN) -->
-    <div id="alerts" class="tab-content" style="display: none !important; visibility: hidden;">
+    <!-- ALERTS SYSTEM SECTION -->
+    <div id="alerts" class="tab-content">
         <div class="container">
             <div class="control-panel">
                 <h2 class="section-title">
@@ -7377,163 +7117,6 @@
                 console.error('TabManager not initialized');
             }
         }
-
-        // Main Menu Navigation Functions for Telegram
-        function showSection(sectionId) {
-            console.log('Showing section:', sectionId);
-            
-            // Lista de secciones permitidas (solo los 4 botones principales)
-            const allowedSections = ['spot-grid', 'futures-grid', 'manual-spot', 'manual-futures'];
-            
-            // Verificar si la sección está permitida
-            if (!allowedSections.includes(sectionId)) {
-                console.warn('Sección no permitida:', sectionId);
-                return;
-            }
-            
-            // Hide main menu
-            const mainMenu = document.getElementById('mainMenu');
-            if (mainMenu) {
-                mainMenu.style.display = 'none';
-            }
-            
-            // Hide all allowed sections only
-            allowedSections.forEach(sectionName => {
-                const section = document.getElementById(sectionName);
-                if (section) {
-                    section.style.display = 'none';
-                }
-            });
-            
-            // Show selected section
-            const targetSection = document.getElementById(sectionId);
-            if (targetSection) {
-                targetSection.style.display = 'block';
-            }
-            
-            // Show tab navigation
-            const tabNav = document.querySelector('.tab-navigation');
-            if (tabNav) {
-                tabNav.style.display = 'flex';
-            }
-            
-            // Show back button
-            const backBtn = document.querySelector('.back-to-overview');
-            if (backBtn) {
-                backBtn.style.display = 'inline-block';
-            }
-            
-            // Activate corresponding tab if TabManager exists
-            if (window.tabManager) {
-                window.tabManager.switchTab(sectionId);
-            }
-            
-            // Initialize specific section functionality
-            initializeSectionData(sectionId);
-            
-            // Telegram WebApp optimization
-            if (window.Telegram && window.Telegram.WebApp) {
-                window.Telegram.WebApp.expand();
-                window.Telegram.WebApp.sendData(JSON.stringify({
-                    action: 'section_opened',
-                    section: sectionId
-                }));
-            }
-        }
-        
-        function showAllSections() {
-            console.log('Showing all sections overview');
-            
-            // Lista de secciones permitidas (solo los 4 botones principales)
-            const allowedSections = ['spot-grid', 'futures-grid', 'manual-spot', 'manual-futures'];
-            
-            // Show main menu
-            const mainMenu = document.getElementById('mainMenu');
-            if (mainMenu) {
-                mainMenu.style.display = 'block';
-            }
-            
-            // Hide only allowed sections
-            allowedSections.forEach(sectionName => {
-                const section = document.getElementById(sectionName);
-                if (section) {
-                    section.style.display = 'none';
-                }
-            });
-            
-            // Hide tab navigation
-            const tabNav = document.querySelector('.tab-navigation');
-            if (tabNav) {
-                tabNav.style.display = 'none';
-            }
-            
-            // Hide back button
-            const backBtn = document.querySelector('.back-to-overview');
-            if (backBtn) {
-                backBtn.style.display = 'none';
-            }
-            
-            // Telegram WebApp notification
-            if (window.Telegram && window.Telegram.WebApp) {
-                window.Telegram.WebApp.sendData(JSON.stringify({
-                    action: 'main_menu_opened'
-                }));
-            }
-        }
-        
-        function initializeSectionData(sectionId) {
-            // Initialize data and UI for the specific section (solo secciones principales)
-            switch(sectionId) {
-                case 'spot-grid':
-                    if (window.spotGridBot) {
-                        window.spotGridBot.loadSavedData();
-                        window.spotGridBot.updateDisplay();
-                    }
-                    break;
-                case 'futures-grid':
-                    if (window.futuresGridBot) {
-                        window.futuresGridBot.loadSavedData();
-                        window.futuresGridBot.updateDisplay();
-                    }
-                    break;
-                case 'manual-spot':
-                    if (window.manualSpotTrader) {
-                        window.manualSpotTrader.loadSavedData();
-                        window.manualSpotTrader.updateDisplay();
-                    }
-                    break;
-                case 'manual-futures':
-                    if (window.manualFuturesTrader) {
-                        window.manualFuturesTrader.loadSavedData();
-                        window.manualFuturesTrader.updateDisplay();
-                    }
-                    break;
-                default:
-                    console.warn('Sección no soportada para inicialización:', sectionId);
-                    break;
-            }
-        }
-        
-        // Initialize Telegram WebApp
-        function initializeTelegramWebApp() {
-            if (window.Telegram && window.Telegram.WebApp) {
-                window.Telegram.WebApp.ready();
-                window.Telegram.WebApp.expand();
-                
-                // Listen for back button
-                window.Telegram.WebApp.onEvent('backButtonClicked', function() {
-                    showAllSections();
-                });
-                
-                console.log('Telegram WebApp initialized');
-            }
-        }
-        
-        // Initialize app on load
-        window.addEventListener('DOMContentLoaded', function() {
-            initializeTelegramWebApp();
-            console.log('Telegram Trading App initialized');
-        });
 
         // Make tabManager available globally for debugging
         window.tabManager = null;
