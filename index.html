@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -1706,7 +1707,7 @@
             <div class="crypto-icon">⚡</div>
             Trading Platform
         </h1>
-        <div class="subtitle">Grid Trading Bots & Manual Trading | Spot & Futures <span id="connectionStatus" style="color: #2ecc71; margin-left: 15px;">🟢 Conectado</span> <span id="binanceStatus" style="color: #3498db; margin-left: 15px;">🪙 Binance API: Conectado</span> <span id="portfolioStatus" style="color: #f39c12; margin-left: 15px;">📊 Portfolio: Tiempo Real</span> <span id="portfolioStatus" style="color: #ffffff; margin-left: 15px;">creado x Andres MAG 8/2025</span></div>
+        <div class="subtitle">Grid Trading Bots & Manual Trading | Spot & Futures <span id="connectionStatus" style="color: #2ecc71; margin-left: 15px;">🟢 Conectado</span> <span id="binanceStatus" style="color: #3498db; margin-left: 15px;">🪙 Binance API: Conectado</span> <span id="portfolioStatus" style="color: #f39c12; margin-left: 15px;">📊 Portfolio: Tiempo Real - Creador Andres MAG</span></div>
         <div style="margin-top: 15px;">
             <button id="resetAllData" class="reset-btn" style="padding: 8px 20px; background: linear-gradient(45deg, #e74c3c, #c0392b); border: none; border-radius: 8px; color: white; cursor: pointer; font-size: 14px; font-weight: 600;">
                 🗑️ RESETEAR TODOS LOS DATOS
@@ -1733,6 +1734,16 @@
                     <div class="section-icon">₿</div>
                     Grid Trading Bot
                 </h2>
+
+                <div class="info-card" style="background: rgba(52, 152, 219, 0.1); border: 1px solid rgba(52, 152, 219, 0.3); border-radius: 10px; padding: 15px; margin-bottom: 20px;">
+                    <h4 style="color: #3498db; margin-bottom: 10px;">🚀 Funcionalidades Avanzadas</h4>
+                    <ul style="margin: 0; padding-left: 20px; color: #ecf0f1; font-size: 14px;">
+                        <li><strong>Porcentaje por Rejilla:</strong> Configura el espaciado entre rejillas</li>
+                        <li><strong>Take Profit & Stop Loss:</strong> Protección automática de ganancias y pérdidas</li>
+                        <li><strong>Comisión Personalizable:</strong> Ajusta la comisión según tu exchange</li>
+                        <li><strong>Ganancia por Rejilla Estimada:</strong> Calcula la rentabilidad esperada</li>
+                    </ul>
+                </div>
                 
                 <div class="form-group">
                     <label for="symbol-spot">Selección de Moneda</label>
@@ -1753,13 +1764,13 @@
                         <div class="form-group">
                             <label for="cryptoAllocation-spot">% en Crypto</label>
                             <div class="percentage-input">
-                                <input type="number" id="cryptoAllocation-spot" value="57.96" step="0.01" min="0" max="100">
+                                <input type="number" id="cryptoAllocation-spot" value="0.00" step="0.01" min="0" max="100">
                             </div>
                         </div>
                         <div class="form-group">
                             <label for="stablecoinAllocation-spot">% en USDT</label>
                             <div class="percentage-input">
-                                <input type="number" id="stablecoinAllocation-spot" value="42.04" step="0.01" min="0" max="100">
+                                <input type="number" id="stablecoinAllocation-spot" value="0.00" step="0.01" min="0" max="100">
                             </div>
                         </div>
                     </div>
@@ -1781,28 +1792,48 @@
                 <div class="two-column">
                     <div class="form-group">
                         <label for="maxPrice-spot">Precio Máximo</label>
-                        <input type="number" id="maxPrice-spot" value="118737" step="0.01">
+                        <input type="number" id="maxPrice-spot" value="0" step="0.01">
                     </div>
                     <div class="form-group">
                         <label for="minPrice-spot">Precio Mínimo</label>
-                        <input type="number" id="minPrice-spot" value="109663" step="0.01">
+                        <input type="number" id="minPrice-spot" value="0" step="0.01">
                     </div>
                 </div>
 
                 <div class="form-group">
                     <label for="entryPrice-spot">Precio de Entrada</label>
-                    <input type="number" id="entryPrice-spot" value="113564" step="0.01">
+                    <input type="number" id="entryPrice-spot" value="0" step="0.01">
                 </div>
 
                 <div class="two-column">
                     <div class="form-group">
                         <label for="gridCount-spot">Cantidad de Rejillas</label>
-                        <input type="number" id="gridCount-spot" value="8" min="2" max="50">
+                        <input type="number" id="gridCount-spot" value="0" min="2" max="150">
+                    </div>
+                    <div class="form-group">
+                        <label for="gridPercent-spot">Porcentaje por Rejilla (%)</label>
+                        <input type="number" id="gridPercent-spot" value="0.00" step="0.01" min="0">
                     </div>
                     <div class="form-group">
                         <label for="investment-spot">Inversión (USDT)</label>
-                        <input type="number" id="investment-spot" value="846" step="0.01" min="10">
+                        <input type="number" id="investment-spot" value="0" step="0.01" min="10">
                     </div>
+                </div>
+
+                <div class="two-column">
+                    <div class="form-group">
+                        <label for="tpPercent-spot">Take Profit (%)</label>
+                        <input type="number" id="tpPercent-spot" value="0.00" step="0.01" min="0">
+                    </div>
+                    <div class="form-group">
+                        <label for="slPercent-spot">Stop Loss (%)</label>
+                        <input type="number" id="slPercent-spot" value="0.00" step="0.01" min="0">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="feePercent-spot">Comisión (%)</label>
+                    <input type="number" id="feePercent-spot" value="0.00" step="0.01" min="0" max="2">
                 </div>
 
                 <div class="date-inputs">
@@ -1846,6 +1877,14 @@
                         <div class="info-value" id="completedRounds-spot">0</div>
                     </div>
                     <div class="info-item">
+                        <div class="info-label">Total Ejecuciones</div>
+                        <div class="info-value" id="totalExecutions-spot">0</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Ganancia por Rejilla Estimada</div>
+                        <div class="info-value" id="gridProfitPerGrid-spot">--</div>
+                    </div>
+                    <div class="info-item">
                         <div class="info-label">Ganancia de Rejilla</div>
                         <div class="info-value" id="gridProfit-spot">+0.00 USDT</div>
                     </div>
@@ -1858,11 +1897,12 @@
                 <div class="stats-card">
                     <h3>Configuración</h3>
                     <div class="fee-info">
-                        <strong>⚠️ Fee por transacción: 0.20%</strong> (incluido en cálculos)
+                        <strong>⚠️ Fee por transacción: <span id="currentFee-spot">0.00%</span></strong> (configurable)
                     </div>
                     <p><strong>Rango de Trading:</strong> <span id="tradingRange-spot">--</span></p>
                     <p><strong>Tamaño por Rejilla:</strong> <span id="gridSize-spot">--</span></p>
                     <p><strong>Inversión por Rejilla:</strong> <span id="investmentPerGrid-spot">--</span></p>
+                    <p><strong>Porcentaje por Rejilla:</strong> <span id="gridPercentDisplay-spot">--</span></p>
                     <p><strong>Estado:</strong> <span id="botStatus-spot">Inactivo</span></p>
                     <p><strong>Total Ejecuciones:</strong> <span id="totalExecutions-spot">0</span></p>
                 </div>
@@ -1924,6 +1964,8 @@
                         <div class="leverage-btn" data-leverage="5">5x</div>
                         <div class="leverage-btn active" data-leverage="10">10x</div>
                         <div class="leverage-btn" data-leverage="20">20x</div>
+                        <div class="leverage-btn" data-leverage="50">50x</div>
+                        <div class="leverage-btn" data-leverage="100">100x</div>
                     </div>
                     <div class="liquidation-warning" id="leverageWarning-futures">
                         ⚠️ Mayor apalancamiento = Mayor riesgo de liquidación
@@ -1932,7 +1974,7 @@
 
                 <div class="form-group">
                     <label for="investment-futures">Margen Total (USDT)</label>
-                    <input type="number" id="investment-futures" value="846" step="0.01" min="10">
+                    <input type="number" id="investment-futures" value="0" step="0.01" min="10">
                 </div>
 
                 <div class="form-group">
@@ -1940,11 +1982,11 @@
                     <div class="two-column">
                         <div class="percentage-input">
                             <label for="cryptoPercentage-futures">En <span id="cryptoSymbol-futures">BTC</span></label>
-                            <input type="number" id="cryptoPercentage-futures" value="50" min="0" max="100" step="1">
+                            <input type="number" id="cryptoPercentage-futures" value="0" min="0" max="100" step="1">
                         </div>
                         <div class="percentage-input">
                             <label for="usdtPercentage-futures">En USDT</label>
-                            <input type="number" id="usdtPercentage-futures" value="50" min="0" max="100" step="1">
+                            <input type="number" id="usdtPercentage-futures" value="0" min="0" max="100" step="1">
                         </div>
                     </div>
                     <div class="allocation-info" id="allocationInfo-futures">
@@ -1955,27 +1997,27 @@
                 <div class="two-column">
                     <div class="form-group">
                         <label for="maxPrice-futures">Precio Superior</label>
-                        <input type="number" id="maxPrice-futures" value="118737" step="0.01">
+                        <input type="number" id="maxPrice-futures" value="0" step="0.01">
                     </div>
                     <div class="form-group">
                         <label for="minPrice-futures">Precio Inferior</label>
-                        <input type="number" id="minPrice-futures" value="109663" step="0.01">
+                        <input type="number" id="minPrice-futures" value="0" step="0.01">
                     </div>
                 </div>
 
                 <div class="form-group">
                     <label for="entryPrice-futures">Precio de Activación</label>
-                    <input type="number" id="entryPrice-futures" value="113564" step="0.01">
+                    <input type="number" id="entryPrice-futures" value="0" step="0.01">
                 </div>
 
                 <div class="two-column">
                     <div class="form-group">
                         <label for="gridCount-futures">Número de Rejillas</label>
-                        <input type="number" id="gridCount-futures" value="8" min="2" max="50">
+                        <input type="number" id="gridCount-futures" value="0" min="2" max="150">
                     </div>
                     <div class="form-group">
                         <label for="tradingAmount-futures">Capital por Grid (USDT)</label>
-                        <input type="number" id="tradingAmount-futures" value="105.75" step="0.01" readonly>
+                        <input type="number" id="tradingAmount-futures" value="0" step="0.01" readonly>
                     </div>
                 </div>
 
@@ -2101,7 +2143,7 @@
 
                 <div class="form-group">
                     <label for="orderPrice-manual-spot">Precio (USDT)</label>
-                    <input type="number" id="orderPrice-manual-spot" value="95000" step="0.01">
+                    <input type="number" id="orderPrice-manual-spot" value="0" step="0.01">
                     <small style="color: #3498db; font-size: 11px; margin-top: 5px; display: block;">
                         💰 Precio Actual: $<span id="currentPriceDisplay-manual-spot">95000</span>
                     </small>
@@ -2110,11 +2152,11 @@
                 <div class="two-column">
                     <div class="form-group">
                         <label for="orderQuantity-manual-spot">Cantidad</label>
-                        <input type="number" id="orderQuantity-manual-spot" value="0.01" step="0.00001" min="0.00001">
+                        <input type="number" id="orderQuantity-manual-spot" value="0" step="0.00001" min="0.00001">
                     </div>
                     <div class="form-group">
                         <label for="orderTotal-manual-spot">Total (USDT)</label>
-                        <input type="number" id="orderTotal-manual-spot" value="950" step="0.01" readonly>
+                        <input type="number" id="orderTotal-manual-spot" value="0" step="0.01" readonly>
                     </div>
                 </div>
 
@@ -2123,11 +2165,11 @@
                     <div class="two-column">
                         <div class="form-group">
                             <label for="stopLoss-manual-spot">Stop Loss (%)</label>
-                            <input type="number" id="stopLoss-manual-spot" value="5" step="0.1" min="0" placeholder="Opcional">
+                            <input type="number" id="stopLoss-manual-spot" value="0" step="0.1" min="0" placeholder="Opcional">
                         </div>
                         <div class="form-group">
                             <label for="takeProfit-manual-spot">Take Profit (%)</label>
-                            <input type="number" id="takeProfit-manual-spot" value="10" step="0.1" min="0" placeholder="Opcional">
+                            <input type="number" id="takeProfit-manual-spot" value="0" step="0.1" min="0" placeholder="Opcional">
                         </div>
                     </div>
                 </div>
@@ -2269,7 +2311,7 @@
 
                 <div class="form-group">
                     <label for="orderPrice-manual-futures">Precio (USDT)</label>
-                    <input type="number" id="orderPrice-manual-futures" value="95000" step="0.01">
+                    <input type="number" id="orderPrice-manual-futures" value="0" step="0.01">
                     <small style="color: #3498db; font-size: 11px; margin-top: 5px; display: block;">
                         💰 Precio Actual: $<span id="currentPriceDisplay-manual-futures">95000</span>
                     </small>
@@ -2278,11 +2320,11 @@
                 <div class="two-column">
                     <div class="form-group">
                         <label for="orderMargin-manual-futures">Margen (USDT)</label>
-                        <input type="number" id="orderMargin-manual-futures" value="100" step="0.01" min="1">
+                        <input type="number" id="orderMargin-manual-futures" value="0" step="0.01" min="1">
                     </div>
                     <div class="form-group">
                         <label for="orderSize-manual-futures">Tamaño Posición</label>
-                        <input type="number" id="orderSize-manual-futures" value="0.1" step="0.001" readonly>
+                        <input type="number" id="orderSize-manual-futures" value="0" step="0.001" readonly>
                     </div>
                 </div>
 
@@ -2295,11 +2337,11 @@
                     <div class="two-column">
                         <div class="form-group">
                             <label for="stopLoss-manual-futures">Stop Loss (%)</label>
-                            <input type="number" id="stopLoss-manual-futures" value="3" step="0.1" min="0" placeholder="Opcional">
+                            <input type="number" id="stopLoss-manual-futures" value="0" step="0.1" min="0" placeholder="Opcional">
                         </div>
                         <div class="form-group">
                             <label for="takeProfit-manual-futures">Take Profit (%)</label>
-                            <input type="number" id="takeProfit-manual-futures" value="6" step="0.1" min="0" placeholder="Opcional">
+                            <input type="number" id="takeProfit-manual-futures" value="0" step="0.1" min="0" placeholder="Opcional">
                         </div>
                     </div>
                 </div>
@@ -2371,7 +2413,7 @@
                 <div class="two-column">
                     <div class="form-group">
                         <label for="dca-amount">Cantidad por Compra (USDT)</label>
-                        <input type="number" id="dca-amount" value="50" min="10" step="1">
+                        <input type="number" id="dca-amount" value="0" min="10" step="1">
                     </div>
                     <div class="form-group">
                         <label for="dca-frequency">Frecuencia</label>
@@ -2386,7 +2428,7 @@
 
                 <div class="form-group">
                     <label for="dca-target">Meta Total (USDT)</label>
-                    <input type="number" id="dca-target" value="1000" min="100" step="50">
+                    <input type="number" id="dca-target" value="0" min="100" step="50">
                 </div>
 
                 <div class="form-group">
@@ -2800,7 +2842,7 @@
 
                 <div class="form-group">
                     <label for="backtest-capital">Capital Inicial</label>
-                    <input type="number" id="backtest-capital" value="10000" min="1000" step="100">
+                    <input type="number" id="backtest-capital" value="0" min="1000" step="100">
                 </div>
 
                 <div class="button-group">
@@ -3144,11 +3186,15 @@
         class TabManager {
             constructor() {
                 this.activeTab = 'spot-grid';
+                this.enforceInterval = null;
                 this.init();
             }
 
             init() {
                 this.setupTabEventListeners();
+                if (!this.enforceInterval) {
+                    this.enforceInterval = setInterval(() => this.ensureActiveTabState(), 1000);
+                }
             }
 
             setupTabEventListeners() {
@@ -3168,6 +3214,25 @@
                         console.warn('Tab button missing data-tab attribute:', btn);
                     }
                 });
+            }
+
+            ensureActiveTabState() {
+                try {
+                    const currentActiveContent = document.querySelector('.tab-content.active');
+                    const currentActiveButton = document.querySelector('.tab-btn.active');
+                    const shouldBeContent = document.getElementById(this.activeTab);
+                    const shouldBeButton = document.querySelector(`[data-tab="${this.activeTab}"]`);
+                    if (!shouldBeContent || !shouldBeButton) return;
+
+                    if (currentActiveContent !== shouldBeContent) {
+                        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                        shouldBeContent.classList.add('active');
+                    }
+                    if (currentActiveButton !== shouldBeButton) {
+                        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+                        shouldBeButton.classList.add('active');
+                    }
+                } catch (e) {}
             }
 
             switchTab(tabId) {
@@ -3289,6 +3354,10 @@
                 this.btcQuantityPerGrid = 0;
                 this.gridInterval = 0;
                 this.suffix = '-spot';
+                // Inventario y lotes para emparejar compras/ventas
+                this.availableBaseQty = 0;
+                this.availableQuote = 0;
+                this.openLots = [];
                 
                 this.init();
             }
@@ -3300,13 +3369,14 @@
                 this.updateGridCalculations();
                 this.getCurrentPrice();
                 this.updateAllocationDisplay();
+                this.updateFeeDisplay();
             }
 
             setupEventListeners() {
                 document.getElementById(`startBot${this.suffix}`).addEventListener('click', () => this.startBot());
                 document.getElementById(`stopBot${this.suffix}`).addEventListener('click', () => this.stopBot());
                 
-                ['maxPrice', 'minPrice', 'gridCount', 'investment'].forEach(id => {
+                ['maxPrice', 'minPrice', 'gridCount', 'investment', 'gridPercent', 'tpPercent', 'slPercent', 'feePercent'].forEach(id => {
                     const element = document.getElementById(`${id}${this.suffix}`);
                     if (element) {
                         element.addEventListener('input', () => this.updateGridCalculations());
@@ -3331,6 +3401,12 @@
                         this.updateGridCalculations();
                         this.updateAllocationDisplay();
                     });
+                }
+
+                // Update fee display when fee changes
+                const feeElement = document.getElementById(`feePercent${this.suffix}`);
+                if (feeElement) {
+                    feeElement.addEventListener('input', () => this.updateFeeDisplay());
                 }
             }
 
@@ -3377,6 +3453,14 @@
                 }
             }
 
+            updateFeeDisplay() {
+                const feePercent = parseFloat(document.getElementById(`feePercent${this.suffix}`)?.value) || 0.20;
+                const currentFeeElement = document.getElementById('currentFee-spot');
+                if (currentFeeElement) {
+                    currentFeeElement.textContent = `${feePercent.toFixed(2)}%`;
+                }
+            }
+
             setDefaultDates() {
                 const startDate = new Date('2025-08-20T10:00:00');
                 const endDate = new Date();
@@ -3410,10 +3494,11 @@
                 const stablecoinAllocation = totalInvestment * (stablecoinAllocationPercent / 100);
                 
                 const priceRange = maxPrice - minPrice;
-                const gridInterval = priceRange / (gridCount - 1);
+                let gridInterval = priceRange / (gridCount - 1);
+                const gridPercent = parseFloat(document.getElementById(`gridPercent${this.suffix}`).value) || 0;
                 
                 const entryPrice = parseFloat(document.getElementById(`entryPrice${this.suffix}`).value) || ((maxPrice + minPrice) / 2);
-                const cryptoQuantityPerGrid = cryptoAllocation / (gridCount * entryPrice);
+                let cryptoQuantityPerGrid = cryptoAllocation / (gridCount * entryPrice);
                 
                 const rangeElement = document.getElementById(`tradingRange${this.suffix}`);
                 const sizeElement = document.getElementById(`gridSize${this.suffix}`);
@@ -3423,27 +3508,86 @@
                     rangeElement.textContent = `${minPrice.toLocaleString()} - ${maxPrice.toLocaleString()}`;
                 }
                 if (sizeElement) {
-                    sizeElement.textContent = `${gridInterval.toFixed(2)} USDT por nivel`;
+                    if (gridPercent > 0) {
+                        sizeElement.textContent = `${gridPercent.toFixed(2)}% por nivel (geométrico)`;
+                    } else {
+                        sizeElement.textContent = `${gridInterval.toFixed(2)} USDT por nivel`;
+                    }
                 }
                 if (investmentElement) {
                     const symbol = document.getElementById(`symbol${this.suffix}`).value.replace('USDT', '');
                     investmentElement.textContent = `${cryptoQuantityPerGrid.toFixed(6)} ${symbol} por rejilla`;
                 }
-                
-                this.gridLevels = [];
-                for (let i = 0; i < gridCount; i++) {
-                    const price = minPrice + (i * gridInterval);
-                    this.gridLevels.push({
-                        price: price,
-                        cryptoQuantity: cryptoQuantityPerGrid,
-                        gridInterval: gridInterval
-                    });
+
+                // Update grid percent display
+                const gridPercentDisplayElement = document.getElementById(`gridPercentDisplay${this.suffix}`);
+                if (gridPercentDisplayElement) {
+                    gridPercentDisplayElement.textContent = gridPercent > 0 ? `${gridPercent.toFixed(2)}%` : 'Auto';
                 }
+                
+                // Construcción de niveles y cantidades por nivel (modelo Pionex):
+                // - Órdenes de COMPRA por debajo del precio de entrada: repartir el USDT disponible por orden de compra
+                // - Órdenes de VENTA por encima del precio de entrada: repartir la cantidad de crypto disponible por orden de venta
+                this.gridLevels = [];
+                const levels = [];
+                if (gridPercent > 0) {
+                    const ratio = 1 + gridPercent / 100;
+                    const startPrice = minPrice;
+                    for (let i = 0; i < gridCount; i++) {
+                        levels.push(startPrice * Math.pow(ratio, i));
+                    }
+                } else {
+                    for (let i = 0; i < gridCount; i++) {
+                        levels.push(minPrice + (i * gridInterval));
+                    }
+                }
+
+                const buyLevels = levels.filter(p => p < entryPrice);
+                const sellLevels = levels.filter(p => p > entryPrice);
+                const buyLevelsCount = buyLevels.length;
+                const sellLevelsCount = sellLevels.length;
+
+                const totalBaseQty = cryptoAllocation / entryPrice; // Crypto disponible inicial
+                const sellQtyPerOrder = sellLevelsCount > 0 ? (totalBaseQty / sellLevelsCount) : 0;
+                const buyUsdtPerOrder = buyLevelsCount > 0 ? (stablecoinAllocation / buyLevelsCount) : 0;
+
+                levels.forEach(price => {
+                    let qty = 0;
+                    if (price < entryPrice) {
+                        // Compra: fijar cantidad para gastar ~USDT por orden
+                        qty = buyUsdtPerOrder > 0 ? (buyUsdtPerOrder / price) : 0;
+                    } else if (price > entryPrice) {
+                        // Venta: repartir el inventario inicial en partes iguales
+                        qty = sellQtyPerOrder;
+                    } else {
+                        qty = 0;
+                    }
+                    this.gridLevels.push({ price, cryptoQuantity: qty, gridInterval: gridInterval });
+                });
 
                 this.cryptoAllocation = cryptoAllocation;
                 this.usdtAllocation = stablecoinAllocation;
                 this.cryptoQuantityPerGrid = cryptoQuantityPerGrid;
                 this.gridInterval = gridInterval;
+
+                // Estimar ganancia por rejilla (neto) usando gridPercent o intervalo con fee editable
+                let est = 0;
+                let grossPct = 0;
+                if (gridPercent > 0) {
+                    grossPct = gridPercent;
+                    est = buyUsdtPerOrder * (gridPercent / 100);
+                } else {
+                    grossPct = entryPrice > 0 ? (gridInterval / entryPrice) * 100 : 0;
+                    est = (buyUsdtPerOrder || (entryPrice * cryptoQuantityPerGrid)) * (grossPct / 100);
+                }
+                const perGridEl = document.getElementById(`gridProfitPerGrid${this.suffix}`);
+                if (perGridEl) {
+                    if (gridPercent > 0) {
+                        perGridEl.textContent = `${est >= 0 ? '+' : ''}${est.toFixed(2)} USDT (~${gridPercent.toFixed(2)}%)`;
+                    } else {
+                        perGridEl.textContent = `${est >= 0 ? '+' : ''}${est.toFixed(2)} USDT`;
+                    }
+                }
             }
 
             async getCurrentPrice() {
@@ -3590,26 +3734,49 @@
                     throw new Error('La fecha de inicio debe ser anterior a la fecha final');
                 }
 
+                this.selectedStartTime = startTime;
+                this.selectedEndTime = endTime;
+
+                // Selección de intervalo según rango
+                const rangeMs = endTime - startTime;
+                const oneDay = 24 * 60 * 60 * 1000;
+                let interval = '5m';
+                if (rangeMs > 10 * oneDay && rangeMs <= 30 * oneDay) interval = '15m';
+                else if (rangeMs > 30 * oneDay && rangeMs <= 180 * oneDay) interval = '1h';
+                else if (rangeMs > 180 * oneDay && rangeMs <= 720 * oneDay) interval = '4h';
+                else if (rangeMs > 720 * oneDay) interval = '1d';
+
                 try {
-                    const response = await fetch(
-                        `https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=5m&startTime=${startTime}&endTime=${endTime}&limit=1000`
-                    );
-                    
-                    if (!response.ok) {
-                        throw new Error(`Error de API: ${response.status}`);
-                    }
-                    
-                    this.historicalData = await response.json();
+                    const klines = await this.fetchKlinesPaginated(symbol, interval, startTime, endTime);
+                    this.historicalData = klines;
                     this.historicalIndex = 0;
-                    
                     if (this.historicalData.length === 0) {
                         throw new Error('No se encontraron datos para el período seleccionado');
                     }
-                    
-                    console.log(`Cargados ${this.historicalData.length} puntos de datos históricos`);
+                    console.log(`Cargados ${this.historicalData.length} puntos (${interval})`);
                 } catch (error) {
                     throw new Error(`Error al cargar datos históricos: ${error.message}`);
                 }
+            }
+
+            async fetchKlinesPaginated(symbol, interval, startTime, endTime) {
+                const all = [];
+                let from = startTime;
+                const limit = 1000;
+                while (from < endTime) {
+                    const url = `https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=${interval}&startTime=${from}&endTime=${endTime}&limit=${limit}`;
+                    const res = await fetch(url);
+                    if (!res.ok) throw new Error(`API ${res.status}`);
+                    const batch = await res.json();
+                    if (!Array.isArray(batch) || batch.length === 0) break;
+                    all.push(...batch);
+                    const lastOpenTime = batch[batch.length - 1][0];
+                    // Avanzar al siguiente
+                    from = lastOpenTime + 1;
+                    // Seguridad: evitar bucles infinitos
+                    if (batch.length < limit) break;
+                }
+                return all;
             }
 
             startHistoricalSimulation() {
@@ -3658,7 +3825,7 @@
                 if (maxPrice <= minPrice) throw new Error('Precio máximo debe ser mayor al mínimo');
                 if (investment < 10) throw new Error('Inversión mínima: 10 USDT');
                 if (gridCount < 2) throw new Error('Mínimo 2 rejillas');
-                if (gridCount > 50) throw new Error('Máximo 50 rejillas');
+                if (gridCount > 150) throw new Error('Máximo 150 rejillas');
                 if (!this.validateAllocation()) throw new Error('Los porcentajes de asignación deben sumar 100%');
             }
 
@@ -3672,6 +3839,16 @@
                 this.gridExecutions = [];
                 this.lastPrice = 0;
                 this.historicalIndex = 0;
+                // Inicializar inventarios según asignación
+                const totalInvestment = parseFloat(document.getElementById(`investment${this.suffix}`).value) || 0;
+                const entryPrice = parseFloat(document.getElementById(`entryPrice${this.suffix}`).value) || this.currentPrice || 0;
+                const cryptoAllocationPercent = parseFloat(document.getElementById(`cryptoAllocation${this.suffix}`).value) || 57.96;
+                const stablecoinAllocationPercent = parseFloat(document.getElementById(`stablecoinAllocation${this.suffix}`).value) || 42.04;
+                const cryptoAllocation = totalInvestment * (cryptoAllocationPercent / 100);
+                const stablecoinAllocation = totalInvestment * (stablecoinAllocationPercent / 100);
+                this.availableBaseQty = entryPrice > 0 ? (cryptoAllocation / entryPrice) : 0;
+                this.availableQuote = stablecoinAllocation;
+                this.openLots = [];
                 this.updateDisplay();
                 
                 if (this.priceChart) {
@@ -3702,6 +3879,9 @@
                     const cryptoAllocation = totalInvestment * (cryptoAllocationPercent / 100);
                     this.trendPnl = cryptoAllocation * priceChange;
                     
+                    // Check Take Profit and Stop Loss
+                    this.checkTakeProfitStopLoss(simulatedPrice, entryPrice);
+                    
                     this.totalProfit = this.gridProfit + this.trendPnl;
                     this.profits.push(this.totalProfit);
                     
@@ -3713,6 +3893,37 @@
                             `${simulatedPrice.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})} USDT`;
                     }
                 } else {
+                    // Al finalizar, si el rango llega a "hoy", usar precio actual como último punto
+                    try {
+                        const symbolElement = document.getElementById(`symbol${this.suffix}`);
+                        const symbol = symbolElement ? symbolElement.value : 'BTCUSDT';
+                        const now = Date.now();
+                        if (this.selectedEndTime && (now - this.selectedEndTime) < (24 * 60 * 60 * 1000)) {
+                            const resp = await fetch(`https://api.binance.com/api/v3/ticker/price?symbol=${symbol}`);
+                            const data = await resp.json();
+                            const livePrice = parseFloat(data.price);
+                            if (!isNaN(livePrice)) {
+                                // procesar último cruce hasta precio actual
+                                this.processGridOrders(livePrice);
+                                const entryPrice = parseFloat(document.getElementById(`entryPrice${this.suffix}`).value);
+                                const totalInvestment = parseFloat(document.getElementById(`investment${this.suffix}`).value);
+                                const cryptoAllocationPercent = parseFloat(document.getElementById(`cryptoAllocation${this.suffix}`).value) || 57.96;
+                                const cryptoAllocation = totalInvestment * (cryptoAllocationPercent / 100);
+                                const priceChange = (livePrice - entryPrice) / entryPrice;
+                                this.trendPnl = cryptoAllocation * priceChange;
+                                this.totalProfit = this.gridProfit + this.trendPnl;
+                                this.priceHistory.push({ time: new Date(now), price: livePrice });
+                                const currentPriceElement = document.getElementById(`currentPrice${this.suffix}`);
+                                if (currentPriceElement) {
+                                    currentPriceElement.textContent = `${livePrice.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})} USDT`;
+                                }
+                                this.updateChart();
+                                this.updateDisplay();
+                            }
+                        }
+                    } catch (e) {
+                        // silencioso
+                    }
                     this.stopBot();
                     this.showMessage('Simulación completada con datos históricos', 'success');
                 }
@@ -3737,7 +3948,53 @@
                     }
                 });
 
+                // TP/SL globales respecto al precio de entrada
+                const tpPct = parseFloat(document.getElementById(`tpPercent${this.suffix}`)?.value) || 0;
+                const slPct = parseFloat(document.getElementById(`slPercent${this.suffix}`)?.value) || 0;
+                const entryPrice = parseFloat(document.getElementById(`entryPrice${this.suffix}`).value) || 0;
+                if (entryPrice > 0) {
+                    const tpPrice = tpPct > 0 ? entryPrice * (1 + tpPct / 100) : null;
+                    const slPrice = slPct > 0 ? entryPrice * (1 - slPct / 100) : null;
+                    if (tpPrice && currentPrice >= tpPrice) {
+                        // Cerrar posiciones abiertas: vender inventario disponible al precio actual
+                        if (this.availableBaseQty > 0) {
+                            const tmpLevel = { price: currentPrice, cryptoQuantity: this.availableBaseQty };
+                            this.executeSellOrder(tmpLevel, currentPrice);
+                        }
+                    }
+                    if (slPrice && currentPrice <= slPrice) {
+                        // Cerrar posiciones abiertas: vender inventario disponible al precio actual
+                        if (this.availableBaseQty > 0) {
+                            const tmpLevel = { price: currentPrice, cryptoQuantity: this.availableBaseQty };
+                            this.executeSellOrder(tmpLevel, currentPrice);
+                        }
+                    }
+                }
+
                 this.lastPrice = currentPrice;
+            }
+
+            checkTakeProfitStopLoss(currentPrice, entryPrice) {
+                const tpPercent = parseFloat(document.getElementById(`tpPercent${this.suffix}`)?.value) || 0;
+                const slPercent = parseFloat(document.getElementById(`slPercent${this.suffix}`)?.value) || 0;
+                
+                if (tpPercent > 0 || slPercent > 0) {
+                    const priceChange = (currentPrice - entryPrice) / entryPrice;
+                    
+                    // Check Take Profit
+                    if (tpPercent > 0 && priceChange >= tpPercent / 100) {
+                        this.showMessage(`🎯 Take Profit alcanzado: +${(priceChange * 100).toFixed(2)}%`, 'success');
+                        this.stopBot();
+                        return;
+                    }
+                    
+                    // Check Stop Loss
+                    if (slPercent > 0 && priceChange <= -slPercent / 100) {
+                        this.showMessage(`🛑 Stop Loss alcanzado: ${(priceChange * 100).toFixed(2)}%`, 'error');
+                        this.stopBot();
+                        return;
+                    }
+                }
             }
 
             executeSellOrder(level, currentPrice) {
@@ -3745,10 +4002,16 @@
                 const cryptoQuantity = level.cryptoQuantity;
                 const usdtReceived = sellPrice * cryptoQuantity;
                 
-                const tradingFee = usdtReceived * 0.002;
+                const feePct = (parseFloat(document.getElementById(`feePercent${this.suffix}`)?.value) || 0.20) / 100;
+                const tradingFee = usdtReceived * feePct;
                 const netUsdtReceived = usdtReceived - tradingFee;
                 
-                const matchingBuy = this.findMatchingBuyOrder(level.price);
+                // Verificar inventario para vender
+                if (this.availableBaseQty < cryptoQuantity) {
+                    return; // no hay inventario suficiente, no vender
+                }
+
+                const matchingBuy = this.findMatchingBuyOrder(level.price, cryptoQuantity);
                 let gridProfit = 0;
                 
                 if (matchingBuy) {
@@ -3758,7 +4021,10 @@
                     gridProfit = netUsdtReceived - (cryptoQuantity * this.getInitialCryptoPrice());
                 }
                 
-                this.gridProfit += Math.max(0, gridProfit);
+                this.gridProfit += gridProfit;
+                // Actualizar inventarios: vendimos crypto, recibimos USDT
+                this.availableBaseQty -= cryptoQuantity;
+                this.availableQuote += netUsdtReceived;
                 
                 const symbol = document.getElementById(`symbol${this.suffix}`).value.replace('USDT', '');
                 
@@ -3779,9 +4045,14 @@
                 const cryptoQuantity = level.cryptoQuantity;
                 const usdtSpent = buyPrice * cryptoQuantity;
                 
-                const tradingFee = usdtSpent * 0.002;
+                const feePct = (parseFloat(document.getElementById(`feePercent${this.suffix}`)?.value) || 0.20) / 100;
+                const tradingFee = usdtSpent * feePct;
                 const totalUsdtCost = usdtSpent + tradingFee;
-                
+                // Verificar USDT disponible
+                if (this.availableQuote < totalUsdtCost) {
+                    return; // no hay USDT suficiente, no comprar
+                }
+
                 const symbol = document.getElementById(`symbol${this.suffix}`).value.replace('USDT', '');
                 
                 this.gridExecutions.push({
@@ -3794,14 +4065,30 @@
                     time: new Date(),
                     symbol: symbol
                 });
+
+                // Guardar lote abierto para emparejar futuras ventas
+                this.openLots.push({ price: buyPrice, qty: cryptoQuantity, fee: tradingFee });
+                // Actualizar inventarios: gastamos USDT y aumentamos crypto
+                this.availableQuote -= totalUsdtCost;
+                this.availableBaseQty += cryptoQuantity;
             }
 
-            findMatchingBuyOrder(sellPrice) {
-                const buyOrders = this.gridExecutions.filter(exec => 
-                    exec.type === 'BUY' && exec.price < sellPrice
-                ).reverse();
-                
-                return buyOrders.length > 0 ? buyOrders[0] : null;
+            findMatchingBuyOrder(sellPrice, quantity) {
+                // Usar el lote más reciente por debajo del precio de venta
+                for (let i = this.openLots.length - 1; i >= 0; i--) {
+                    const lot = this.openLots[i];
+                    if (lot.qty > 0 && lot.price <= sellPrice) {
+                        const originalQty = lot.qty;
+                        const consume = Math.min(originalQty, quantity);
+                        lot.qty = originalQty - consume;
+                        if (lot.qty <= 0) {
+                            this.openLots.splice(i, 1);
+                        }
+                        const feeProportion = originalQty > 0 ? lot.fee * (consume / originalQty) : 0;
+                        return { price: lot.price, fee: feeProportion };
+                    }
+                }
+                return null;
             }
 
             getInitialCryptoPrice() {
@@ -3839,6 +4126,9 @@
                 if (profitElement) profitElement.textContent = `${sign}${this.totalProfit.toFixed(2)} USDT`;
                 if (percentageElement) percentageElement.textContent = `(${sign}${profitPercentage.toFixed(2)}%)`;
                 
+                // Calculate completed rounds more accurately
+                this.calculateCompletedRounds();
+                
                 const profitDisplay = document.querySelector('#spot-grid .profit-display');
                 if (profitDisplay) {
                     if (this.totalProfit >= 0) {
@@ -3862,6 +4152,28 @@
                 });
 
                 this.updateExecutionsList();
+            }
+
+            calculateCompletedRounds() {
+                // Count complete buy-sell cycles
+                const buyOrders = this.gridExecutions.filter(exec => exec.type === 'BUY');
+                const sellOrders = this.gridExecutions.filter(exec => exec.type === 'SELL');
+                
+                // A round is complete when we have both buy and sell orders
+                // We'll count the minimum of buy and sell orders as completed rounds
+                const completedRounds = Math.min(buyOrders.length, sellOrders.length);
+                
+                // Update the display
+                const completedRoundsElement = document.getElementById(`completedRounds${this.suffix}`);
+                if (completedRoundsElement) {
+                    completedRoundsElement.textContent = completedRounds;
+                }
+                
+                // Also update the total executions
+                const totalExecutionsElement = document.getElementById(`totalExecutions${this.suffix}`);
+                if (totalExecutionsElement) {
+                    totalExecutionsElement.textContent = this.gridExecutions.length;
+                }
             }
 
             updateExecutionsList() {
@@ -4350,7 +4662,7 @@
                 if (maxPrice <= minPrice) throw new Error('Precio superior debe ser mayor al inferior');
                 if (investment < 10) throw new Error('Margen mínimo: 10 USDT');
                 if (gridCount < 2) throw new Error('Mínimo 2 rejillas');
-                if (gridCount > 50) throw new Error('Máximo 50 rejillas');
+                if (gridCount > 150) throw new Error('Máximo 150 rejillas');
                 
                 if (this.cryptoPercentage + this.usdtPercentage !== 100) {
                     throw new Error('La suma de los porcentajes debe ser 100%');
@@ -4403,26 +4715,47 @@
                     throw new Error('La fecha de inicio debe ser anterior a la fecha final');
                 }
 
+                this.selectedStartTime = startTime;
+                this.selectedEndTime = endTime;
+
+                // Selección de intervalo según rango
+                const rangeMs = endTime - startTime;
+                const oneDay = 24 * 60 * 60 * 1000;
+                let interval = '5m';
+                if (rangeMs > 10 * oneDay && rangeMs <= 30 * oneDay) interval = '15m';
+                else if (rangeMs > 30 * oneDay && rangeMs <= 180 * oneDay) interval = '1h';
+                else if (rangeMs > 180 * oneDay && rangeMs <= 720 * oneDay) interval = '4h';
+                else if (rangeMs > 720 * oneDay) interval = '1d';
+
                 try {
-                    const response = await fetch(
-                        `https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=5m&startTime=${startTime}&endTime=${endTime}&limit=1000`
-                    );
-                    
-                    if (!response.ok) {
-                        throw new Error(`Error de API: ${response.status}`);
-                    }
-                    
-                    this.historicalData = await response.json();
+                    const klines = await this.fetchKlinesPaginated(symbol, interval, startTime, endTime);
+                    this.historicalData = klines;
                     this.historicalIndex = 0;
-                    
                     if (this.historicalData.length === 0) {
                         throw new Error('No se encontraron datos para el período seleccionado');
                     }
-                    
-                    console.log(`Cargados ${this.historicalData.length} puntos de datos históricos`);
+                    console.log(`Cargados ${this.historicalData.length} puntos (${interval})`);
                 } catch (error) {
                     throw new Error(`Error al cargar datos históricos: ${error.message}`);
                 }
+            }
+
+            async fetchKlinesPaginated(symbol, interval, startTime, endTime) {
+                const all = [];
+                let from = startTime;
+                const limit = 1000;
+                while (from < endTime) {
+                    const url = `https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=${interval}&startTime=${from}&endTime=${endTime}&limit=${limit}`;
+                    const res = await fetch(url);
+                    if (!res.ok) throw new Error(`API ${res.status}`);
+                    const batch = await res.json();
+                    if (!Array.isArray(batch) || batch.length === 0) break;
+                    all.push(...batch);
+                    const lastOpenTime = batch[batch.length - 1][0];
+                    from = lastOpenTime + 1;
+                    if (batch.length < limit) break;
+                }
+                return all;
             }
 
             initializeGridOrders() {
@@ -4519,6 +4852,31 @@
                             `${simulatedPrice.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})} USDT`;
                     }
                 } else {
+                    try {
+                        const symbolElement = document.getElementById(`symbol${this.suffix}`);
+                        const symbol = symbolElement ? symbolElement.value : 'BTCUSDT';
+                        const now = Date.now();
+                        if (this.selectedEndTime && (now - this.selectedEndTime) < (24 * 60 * 60 * 1000)) {
+                            const resp = await fetch(`https://api.binance.com/api/v3/ticker/price?symbol=${symbol}`);
+                            const data = await resp.json();
+                            const livePrice = parseFloat(data.price);
+                            if (!isNaN(livePrice)) {
+                                this.processGridOrders(livePrice);
+                                const entryPrice = parseFloat(document.getElementById(`entryPrice${this.suffix}`).value);
+                                const totalInvestment = parseFloat(document.getElementById(`investment${this.suffix}`).value);
+                                const priceChange = (livePrice - entryPrice) / entryPrice;
+                                const positionSizePerGrid = parseFloat(document.getElementById(`positionPerGrid${this.suffix}`)?.textContent) || 0;
+                                // PnL no realizado ya se mantiene; solo actualizamos último precio
+                                this.priceHistory.push({ time: new Date(now), price: livePrice });
+                                const currentPriceElement = document.getElementById(`currentPrice${this.suffix}`);
+                                if (currentPriceElement) {
+                                    currentPriceElement.textContent = `${livePrice.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})} USDT`;
+                                }
+                                this.updateChart();
+                                this.updateDisplay();
+                            }
+                        }
+                    } catch (e) {}
                     this.stopBot();
                     this.showMessage('Simulación completada con datos históricos', 'success');
                 }
@@ -8503,9 +8861,7 @@
                 tabManager = new TabManager();
                 window.tabManager = tabManager;
                 
-                // Initialize first tab (spot grid)
-                console.log('Initializing SpotGridBot...');
-                window.spotGridBot = new SpotGridTradingBot();
+                // Eliminar inicialización forzada del Spot al cargar para respetar la pestaña activa
                 
                 console.log('Application initialization completed successfully');
             } catch (error) {
