@@ -1,0 +1,165 @@
+<div class="manual-container">
+    <div class="order-panel">
+        <h2 class="section-title">
+            <div class="section-icon">🎯</div>
+            Manual Spot Trading
+        </h2>
+
+        <div class="form-group">
+            <label for="symbol-manual-spot">Par de Trading</label>
+            <select id="symbol-manual-spot">
+                <option value="BTCUSDT">BTC/USDT</option>
+                <option value="ETHUSDT">ETH/USDT</option>
+                <option value="TONUSDT">TON/USDT</option>
+                <option value="BNBUSDT">BNB/USDT</option>
+                <option value="ADAUSDT">ADA/USDT</option>
+                <option value="SOLUSDT">SOL/USDT</option>
+                <option value="DOGEUSDT">DOGE/USDT</option>
+            </select>
+        </div>
+
+        <div class="balance-display">
+            <div class="balance-amount" id="spotBalance">0.00 USDT</div>
+            <div class="balance-label">Balance Disponible</div>
+            <div class="balance-meta" id="spotCapitalNet">Capital neto: 0.00 USDT</div>
+            <button id="editBalanceSpot" class="edit-balance-btn" style="margin-top: 10px; padding: 5px 15px; background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.3); border-radius: 6px; color: white; cursor: pointer; font-size: 12px;">✏️ Editar Balance</button>
+        </div>
+
+        <div class="capital-controls">
+            <div class="form-group">
+                <label for="spotCapitalAmount">Agregar o retirar capital (USDT)</label>
+                <input type="number" id="spotCapitalAmount" placeholder="Ej: 200" step="0.01" min="0">
+            </div>
+            <div class="capital-actions">
+                <button class="capital-btn btn-add" id="addCapitalSpot">Agregar</button>
+                <button class="capital-btn btn-remove" id="removeCapitalSpot">Retirar</button>
+            </div>
+            <div class="capital-hint">El capital inicial es 0. Agrega fondos para operar.</div>
+        </div>
+
+        <div class="order-type-selector">
+            <div class="order-type-btn active" data-type="buy">COMPRAR</div>
+            <div class="order-type-btn sell" data-type="sell">VENDER</div>
+        </div>
+
+        <div class="form-group">
+            <label>Tipo de Orden</label>
+            <div class="two-column">
+                <div class="order-type-btn" data-order="market">MERCADO</div>
+                <div class="order-type-btn active" data-order="limit">LIMITE</div>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label for="orderPrice-manual-spot">Precio (USDT)</label>
+            <input type="number" id="orderPrice-manual-spot" value="0" step="0.01">
+            <small style="color: #3498db; font-size: 11px; margin-top: 5px; display: block;">
+                💰 Precio Actual: $<span id="currentPriceDisplay-manual-spot">0</span>
+            </small>
+        </div>
+
+        <div class="two-column">
+            <div class="form-group">
+                <label for="orderQuantity-manual-spot">Cantidad</label>
+                <input type="number" id="orderQuantity-manual-spot" value="0" step="0.00001" min="0.00001">
+            </div>
+            <div class="form-group">
+                <label for="orderTotal-manual-spot">Total (USDT)</label>
+                <input type="number" id="orderTotal-manual-spot" value="0" step="0.01" readonly>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <h4>🎯 Ordenes Condicionales</h4>
+            <div class="two-column">
+                <div class="form-group">
+                    <label for="stopLoss-manual-spot">Stop Loss (%)</label>
+                    <input type="number" id="stopLoss-manual-spot" value="0" step="0.1" min="0" placeholder="Opcional">
+                </div>
+                <div class="form-group">
+                    <label for="takeProfit-manual-spot">Take Profit (%)</label>
+                    <input type="number" id="takeProfit-manual-spot" value="0" step="0.1" min="0" placeholder="Opcional">
+                </div>
+            </div>
+        </div>
+
+        <div class="fee-info">
+            💰 <strong>Fee de Trading: 0.10%</strong> (~$0.95 por transaccion)
+        </div>
+
+        <div class="button-group">
+            <button class="btn-buy" id="executeBuy-manual-spot">
+                COMPRAR <span id="buySymbol-manual-spot">BTC</span>
+            </button>
+            <button class="btn-sell" id="executeSell-manual-spot" disabled>
+                VENDER <span id="sellSymbol-manual-spot">BTC</span>
+            </button>
+        </div>
+
+        <div id="messageArea-manual-spot"></div>
+    </div>
+
+    <div class="order-panel">
+        <h3 style="color: #f39c12; margin-bottom: 20px; display: flex; align-items: center; gap: 10px;">
+            📈 Posiciones Activas
+        </h3>
+
+        <div class="position-display" id="activePositions-manual-spot">
+            <div style="text-align: center; color: #bdc3c7; padding: 20px;">
+                No hay posiciones activas
+            </div>
+        </div>
+
+        <div class="stats-card">
+            <h3>Portfolio Spot</h3>
+            <p><strong>Balance USDT:</strong> <span id="usdtBalance-manual-spot">0.00 USDT</span></p>
+            <p><strong>Balance Crypto:</strong> <span id="cryptoBalance-manual-spot">0.00000 BTC</span></p>
+            <p><strong>Valor Total:</strong> <span id="totalValue-manual-spot">0.00 USDT</span></p>
+            <p><strong>PnL Total:</strong> <span id="totalPnl-manual-spot">+0.00 USDT (0.00%)</span></p>
+            <p><strong>Total Trades:</strong> <span id="totalTrades-manual-spot">0</span></p>
+        </div>
+
+        <div class="indicators-panel">
+            <h3 style="color: #f39c12; margin-bottom: 15px; display: flex; align-items: center; gap: 10px;">
+                📊 Indicadores Tecnicos
+            </h3>
+            <div id="technicalIndicators-spot">
+                <div class="indicator-item">
+                    <span>RSI (14)</span>
+                    <span class="indicator-value indicator-neutral" id="rsi-spot">--</span>
+                </div>
+                <div class="indicator-item">
+                    <span>MACD</span>
+                    <span class="indicator-value indicator-neutral" id="macd-spot">--</span>
+                </div>
+                <div class="indicator-item">
+                    <span>Bollinger Bands</span>
+                    <span class="indicator-value indicator-neutral" id="bb-spot">--</span>
+                </div>
+                <div class="indicator-item">
+                    <span>EMA 20</span>
+                    <span class="indicator-value indicator-neutral" id="ema20-spot">--</span>
+                </div>
+                <div class="indicator-item">
+                    <span>Volume Trend</span>
+                    <span class="indicator-value indicator-neutral" id="volume-spot">--</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="advanced-orders">
+            <h4>🎯 Ordenes Avanzadas</h4>
+            <div class="order-type-grid">
+                <div class="advanced-order-btn" data-type="trailing-stop">Trailing Stop</div>
+                <div class="advanced-order-btn" data-type="oco">OCO</div>
+                <div class="advanced-order-btn" data-type="scale-in">Scale In</div>
+                <div class="advanced-order-btn" data-type="scale-out">Scale Out</div>
+            </div>
+            <div id="advancedOrderForm-spot" style="display: none; margin-top: 15px;"></div>
+        </div>
+
+        <div class="chart-container" style="height: 300px;">
+            <canvas id="spotChart-manual"></canvas>
+        </div>
+    </div>
+</div>

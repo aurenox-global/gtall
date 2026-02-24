@@ -1,0 +1,141 @@
+<div class="manual-container">
+    <div class="order-panel">
+        <h2 class="section-title">
+            <div class="section-icon">🚀</div>
+            Manual Futures Trading
+        </h2>
+
+        <div class="form-group">
+            <label for="symbol-manual-futures">Par de Trading</label>
+            <select id="symbol-manual-futures">
+                <option value="BTCUSDT">BTC/USDT Perpetual</option>
+                <option value="ETHUSDT">ETH/USDT Perpetual</option>
+                <option value="TONUSDT">TON/USDT Perpetual</option>
+                <option value="BNBUSDT">BNB/USDT Perpetual</option>
+                <option value="ADAUSDT">ADA/USDT Perpetual</option>
+                <option value="SOLUSDT">SOL/USDT Perpetual</option>
+            </select>
+        </div>
+
+        <div class="balance-display">
+            <div class="balance-amount" id="futuresMargin">0.00 USDT</div>
+            <div class="balance-label">Margen Disponible</div>
+            <div class="balance-meta" id="futuresCapitalNet">Capital neto: 0.00 USDT</div>
+            <button id="editBalanceFutures" class="edit-balance-btn" style="margin-top: 10px; padding: 5px 15px; background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.3); border-radius: 6px; color: white; cursor: pointer; font-size: 12px;">✏️ Editar Balance</button>
+        </div>
+
+        <div class="capital-controls">
+            <div class="form-group">
+                <label for="futuresCapitalAmount">Agregar o retirar capital (USDT)</label>
+                <input type="number" id="futuresCapitalAmount" placeholder="Ej: 200" step="0.01" min="0">
+            </div>
+            <div class="capital-actions">
+                <button class="capital-btn btn-add" id="addCapitalFutures">Agregar</button>
+                <button class="capital-btn btn-remove" id="removeCapitalFutures">Retirar</button>
+            </div>
+            <div class="capital-hint">El capital inicial es 0. Agrega margen disponible para operar.</div>
+        </div>
+
+        <div class="form-group">
+            <label>Apalancamiento</label>
+            <div class="leverage-selector">
+                <div class="leverage-btn" data-leverage="1">1x</div>
+                <div class="leverage-btn" data-leverage="2">2x</div>
+                <div class="leverage-btn active" data-leverage="10">10x</div>
+                <div class="leverage-btn" data-leverage="20">20x</div>
+                <div class="leverage-btn" data-leverage="50">50x</div>
+            </div>
+        </div>
+
+        <div class="order-type-selector">
+            <div class="order-type-btn active" data-type="long">LONG</div>
+            <div class="order-type-btn sell" data-type="short">SHORT</div>
+        </div>
+
+        <div class="form-group">
+            <label>Tipo de Orden</label>
+            <div class="two-column">
+                <div class="order-type-btn" data-order="market">MERCADO</div>
+                <div class="order-type-btn active" data-order="limit">LIMITE</div>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label for="orderPrice-manual-futures">Precio (USDT)</label>
+            <input type="number" id="orderPrice-manual-futures" value="0" step="0.01">
+            <small style="color: #3498db; font-size: 11px; margin-top: 5px; display: block;">
+                💰 Precio Actual: $<span id="currentPriceDisplay-manual-futures">0</span>
+            </small>
+        </div>
+
+        <div class="two-column">
+            <div class="form-group">
+                <label for="orderMargin-manual-futures">Margen (USDT)</label>
+                <input type="number" id="orderMargin-manual-futures" value="0" step="0.01" min="1">
+            </div>
+            <div class="form-group">
+                <label for="orderSize-manual-futures">Tamano Posicion</label>
+                <input type="number" id="orderSize-manual-futures" value="0" step="0.001" readonly>
+            </div>
+        </div>
+
+        <div class="margin-info" id="marginInfo-manual-futures">
+            💼 Margen Inicial: $0 | Posicion: $0 | Liquidacion: ~$0
+        </div>
+
+        <div class="form-group">
+            <h4>🎯 Gestion de Riesgo</h4>
+            <div class="two-column">
+                <div class="form-group">
+                    <label for="stopLoss-manual-futures">Stop Loss (%)</label>
+                    <input type="number" id="stopLoss-manual-futures" value="0" step="0.1" min="0" placeholder="Opcional">
+                </div>
+                <div class="form-group">
+                    <label for="takeProfit-manual-futures">Take Profit (%)</label>
+                    <input type="number" id="takeProfit-manual-futures" value="0" step="0.1" min="0" placeholder="Opcional">
+                </div>
+            </div>
+        </div>
+
+        <div class="liquidation-risk">
+            ⚠️ <strong>Riesgo de Liquidacion:</strong> Precio de liquidacion calculado automaticamente
+        </div>
+
+        <div class="button-group">
+            <button class="btn-buy" id="executeLong-manual-futures">
+                ABRIR LONG
+            </button>
+            <button class="btn-sell" id="executeShort-manual-futures">
+                ABRIR SHORT
+            </button>
+        </div>
+
+        <div id="messageArea-manual-futures"></div>
+    </div>
+
+    <div class="order-panel">
+        <h3 style="color: #f39c12; margin-bottom: 20px; display: flex; align-items: center; gap: 10px;">
+            ⚡ Posiciones Futures
+        </h3>
+
+        <div class="position-display" id="activePositions-manual-futures">
+            <div style="text-align: center; color: #bdc3c7; padding: 20px;">
+                No hay posiciones activas
+            </div>
+        </div>
+
+        <div class="stats-card">
+            <h3>Portfolio Futures</h3>
+            <p><strong>Margen Disponible:</strong> <span id="availableMargin-manual-futures">0.00 USDT</span></p>
+            <p><strong>Margen Usado:</strong> <span id="usedMargin-manual-futures">0.00 USDT</span></p>
+            <p><strong>PnL No Realizado:</strong> <span id="unrealizedPnl-manual-futures">+0.00 USDT</span></p>
+            <p><strong>PnL Realizado:</strong> <span id="realizedPnl-manual-futures">+0.00 USDT</span></p>
+            <p><strong>Funding Fees:</strong> <span id="fundingFees-manual-futures">0.00 USDT</span></p>
+            <p><strong>Total Trades:</strong> <span id="totalTrades-manual-futures">0</span></p>
+        </div>
+
+        <div class="chart-container" style="height: 300px;">
+            <canvas id="futuresChart-manual"></canvas>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,167 @@
+<div class="container">
+    <div class="control-panel">
+        <h2 class="section-title">
+            <div class="section-icon">🔔</div>
+            Sistema de Alertas
+        </h2>
+
+        <div class="form-group">
+            <label for="alert-symbol">Simbolo</label>
+            <select id="alert-symbol">
+                <option value="BTCUSDT">BTC/USDT</option>
+                <option value="ETHUSDT">ETH/USDT</option>
+                <option value="BNBUSDT">BNB/USDT</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label>Tipo de Alerta</label>
+            <div class="mode-selector">
+                <div class="mode-btn active" data-alert="price">Precio</div>
+                <div class="mode-btn" data-alert="indicator">Indicador</div>
+                <div class="mode-btn" data-alert="volume">Volumen</div>
+            </div>
+        </div>
+
+        <div class="form-group" id="price-alert-form">
+            <div class="two-column">
+                <div>
+                    <label for="alert-condition">Condicion</label>
+                    <select id="alert-condition">
+                        <option value="above">Precio &gt; </option>
+                        <option value="below">Precio &lt; </option>
+                        <option value="cross-up">Cruza hacia arriba</option>
+                        <option value="cross-down">Cruza hacia abajo</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="alert-value">Valor</label>
+                    <input type="number" id="alert-value" placeholder="Ej: 95000" step="0.01">
+                </div>
+            </div>
+        </div>
+
+        <div class="form-group" id="indicator-alert-form" style="display: none;">
+            <div class="two-column">
+                <div>
+                    <label for="alert-indicator">Indicador</label>
+                    <select id="alert-indicator">
+                        <option value="rsi">RSI</option>
+                        <option value="macd">MACD</option>
+                        <option value="ema">EMA</option>
+                        <option value="sma">SMA</option>
+                        <option value="bollinger">Bandas de Bollinger</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="alert-indicator-period">Periodo</label>
+                    <input type="number" id="alert-indicator-period" placeholder="14" min="1" max="200" value="14">
+                </div>
+            </div>
+            <div class="two-column">
+                <div>
+                    <label for="alert-indicator-condition">Condicion</label>
+                    <select id="alert-indicator-condition">
+                        <option value="above">Mayor que</option>
+                        <option value="below">Menor que</option>
+                        <option value="cross-up">Cruza hacia arriba</option>
+                        <option value="cross-down">Cruza hacia abajo</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="alert-indicator-value">Valor</label>
+                    <input type="number" id="alert-indicator-value" placeholder="Ej: 70" step="0.01">
+                </div>
+            </div>
+        </div>
+
+        <div class="form-group" id="volume-alert-form" style="display: none;">
+            <div class="two-column">
+                <div>
+                    <label for="alert-volume-condition">Condicion</label>
+                    <select id="alert-volume-condition">
+                        <option value="above">Volumen &gt; </option>
+                        <option value="below">Volumen &lt; </option>
+                        <option value="spike">Pico de volumen (% aumento)</option>
+                        <option value="avg-above">Por encima del promedio</option>
+                        <option value="avg-below">Por debajo del promedio</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="alert-volume-value">Valor</label>
+                    <input type="number" id="alert-volume-value" placeholder="Ej: 1000000" step="1">
+                </div>
+            </div>
+            <div class="form-group">
+                <label for="alert-volume-timeframe">Marco Temporal</label>
+                <select id="alert-volume-timeframe">
+                    <option value="1m">1 minuto</option>
+                    <option value="5m">5 minutos</option>
+                    <option value="15m">15 minutos</option>
+                    <option value="1h" selected>1 hora</option>
+                    <option value="4h">4 horas</option>
+                    <option value="1d">1 dia</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label for="alert-message">Mensaje Personalizado</label>
+            <input type="text" id="alert-message" placeholder="BTC alcanzo el precio objetivo">
+        </div>
+
+        <div class="form-group">
+            <h4>🔊 Notificaciones</h4>
+            <div class="two-column">
+                <label><input type="checkbox" id="alert-browser" checked> Navegador</label>
+                <label><input type="checkbox" id="alert-sound" checked> Sonido</label>
+            </div>
+        </div>
+
+        <div class="button-group">
+            <button class="btn-start" id="createAlert">➕ Crear Alerta</button>
+            <button class="btn-stop" id="testAlert">🔊 Probar Sonido</button>
+        </div>
+
+        <div id="messageArea-alerts"></div>
+    </div>
+
+    <div class="main-display">
+        <h3 style="color: #f39c12; margin-bottom: 20px;">🔔 Alertas Activas</h3>
+
+        <div id="activeAlerts">
+            <div class="alert-item alert-active">
+                <div>
+                    <strong>BTC/USDT</strong><br>
+                    Precio &gt; $96,000
+                </div>
+                <div>
+                    <span style="color: #2ecc71;">Activa</span>
+                    <button onclick="removeAlert(1)" style="margin-left: 10px; padding: 2px 6px; background: #e74c3c; border: none; border-radius: 3px; color: white; cursor: pointer;">×</button>
+                </div>
+            </div>
+
+            <div class="alert-item">
+                <div>
+                    <strong>ETH/USDT</strong><br>
+                    RSI &lt; 30
+                </div>
+                <div>
+                    <span style="color: #f39c12;">Pendiente</span>
+                    <button onclick="removeAlert(2)" style="margin-left: 10px; padding: 2px 6px; background: #e74c3c; border: none; border-radius: 3px; color: white; cursor: pointer;">×</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="stats-card" style="margin-top: 20px;">
+            <h3>📊 Estadisticas de Alertas</h3>
+            <p><strong>Alertas Activas:</strong> <span id="alerts-active-count">2</span></p>
+            <p><strong>Alertas Disparadas Hoy:</strong> <span id="alerts-triggered-today">5</span></p>
+            <p><strong>Alertas Totales:</strong> <span id="alerts-total-count">24</span></p>
+        </div>
+
+        <div class="chart-container">
+            <canvas id="alertsChart"></canvas>
+        </div>
+    </div>
+</div>

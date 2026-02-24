@@ -1,0 +1,194 @@
+<div class="container">
+    <div class="control-panel">
+        <h2 class="section-title">
+            <div class="section-icon">₿</div>
+            Grid Trading Bot
+        </h2>
+
+        <div class="info-card" style="background: rgba(52, 152, 219, 0.1); border: 1px solid rgba(52, 152, 219, 0.3); border-radius: 10px; padding: 15px; margin-bottom: 20px;">
+            <h4 style="color: #3498db; margin-bottom: 10px;">🚀 Funcionalidades Avanzadas</h4>
+            <ul style="margin: 0; padding-left: 20px; color: #ecf0f1; font-size: 14px;">
+                <li><strong>Porcentaje por Rejilla:</strong> Configura el espaciado entre rejillas</li>
+                <li><strong>Take Profit & Stop Loss:</strong> Proteccion automatica de ganancias y perdidas</li>
+                <li><strong>Comision Personalizable:</strong> Ajusta la comision segun tu exchange</li>
+                <li><strong>Ganancia por Rejilla Estimada:</strong> Calcula la rentabilidad esperada</li>
+            </ul>
+        </div>
+
+        <div class="form-group">
+            <label for="symbol-spot">Seleccion de Moneda</label>
+            <select id="symbol-spot">
+                <option value="BTCUSDT">BTC/USDT</option>
+                <option value="ETHUSDT">ETH/USDT</option>
+                <option value="TONUSDT">TON/USDT</option>
+                <option value="BNBUSDT">BNB/USDT</option>
+                <option value="ADAUSDT">ADA/USDT</option>
+                <option value="SOLUSDT">SOL/USDT</option>
+                <option value="DOGEUSDT">DOGE/USDT</option>
+            </select>
+        </div>
+
+        <div class="allocation-section">
+            <h4>⚖️ Asignacion Inicial de Capital</h4>
+            <div class="two-column">
+                <div class="form-group">
+                    <label for="cryptoAllocation-spot">% en Crypto</label>
+                    <div class="percentage-input">
+                        <input type="number" id="cryptoAllocation-spot" value="0.00" step="0.01" min="0" max="100">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="stablecoinAllocation-spot">% en USDT</label>
+                    <div class="percentage-input">
+                        <input type="number" id="stablecoinAllocation-spot" value="0.00" step="0.01" min="0" max="100">
+                    </div>
+                </div>
+            </div>
+            <div id="allocationWarning-spot" class="warning" style="display: none;">
+                ⚠️ Los porcentajes deben sumar exactamente 100%
+            </div>
+            <div class="allocation-display">
+                <div class="allocation-item">
+                    <div class="allocation-color btc-color"></div>
+                    <span id="cryptoAllocationDisplay-spot">Crypto: 0.00% ($0.00)</span>
+                </div>
+                <div class="allocation-item">
+                    <div class="allocation-color usdt-color"></div>
+                    <span id="stablecoinAllocationDisplay-spot">USDT: 0.00% ($0.00)</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="two-column">
+            <div class="form-group">
+                <label for="maxPrice-spot">Precio Maximo</label>
+                <input type="number" id="maxPrice-spot" value="0" step="0.01">
+            </div>
+            <div class="form-group">
+                <label for="minPrice-spot">Precio Minimo</label>
+                <input type="number" id="minPrice-spot" value="0" step="0.01">
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label for="entryPrice-spot">Precio de Entrada</label>
+            <input type="number" id="entryPrice-spot" value="0" step="0.01">
+        </div>
+
+        <div class="two-column">
+            <div class="form-group">
+                <label for="gridCount-spot">Cantidad de Rejillas</label>
+                <input type="number" id="gridCount-spot" value="0" min="2" max="150">
+            </div>
+            <div class="form-group">
+                <label for="gridPercent-spot">Porcentaje por Rejilla (%)</label>
+                <input type="number" id="gridPercent-spot" value="0.00" step="0.01" min="0">
+            </div>
+        </div>
+
+        <div class="two-column">
+            <div class="form-group">
+                <label for="investment-spot">Inversion (USDT)</label>
+                <input type="number" id="investment-spot" value="0" step="0.01" min="10">
+            </div>
+            <div class="form-group">
+                <label for="feePercent-spot">Comision (%)</label>
+                <input type="number" id="feePercent-spot" value="0.00" step="0.01" min="0" max="2">
+            </div>
+        </div>
+
+        <div class="two-column">
+            <div class="form-group">
+                <label for="tpPercent-spot">Take Profit (%)</label>
+                <input type="number" id="tpPercent-spot" value="0.00" step="0.01" min="0">
+            </div>
+            <div class="form-group">
+                <label for="slPercent-spot">Stop Loss (%)</label>
+                <input type="number" id="slPercent-spot" value="0.00" step="0.01" min="0">
+            </div>
+        </div>
+
+        <div class="date-inputs">
+            <div class="form-group">
+                <label for="startDate-spot">Fecha Desde</label>
+                <input type="datetime-local" id="startDate-spot">
+            </div>
+            <div class="form-group">
+                <label for="endDate-spot">Fecha Hasta</label>
+                <input type="datetime-local" id="endDate-spot">
+            </div>
+        </div>
+
+        <div class="button-group">
+            <button class="btn-start" id="startBot-spot">
+                <span class="status-indicator status-inactive"></span>
+                Iniciar Bot
+            </button>
+            <button class="btn-stop" id="stopBot-spot" disabled>
+                <span class="status-indicator status-inactive"></span>
+                Cancelar Bot
+            </button>
+        </div>
+
+        <div id="messageArea-spot"></div>
+    </div>
+
+    <div class="main-display">
+        <div class="profit-display">
+            <div class="profit-amount" id="totalProfit-spot">+0.00 USDT</div>
+            <div class="profit-percentage" id="profitPercentage-spot">(+0.00%)</div>
+        </div>
+
+        <div class="grid-info">
+            <div class="info-item">
+                <div class="info-label">Precio Actual</div>
+                <div class="info-value" id="currentPrice-spot">--</div>
+            </div>
+            <div class="info-item">
+                <div class="info-label">Rondas Completadas</div>
+                <div class="info-value" id="completedRounds-spot">0</div>
+            </div>
+            <div class="info-item">
+                <div class="info-label">Total Ejecuciones</div>
+                <div class="info-value" id="totalExecutions-spot">0</div>
+            </div>
+            <div class="info-item">
+                <div class="info-label">Ganancia por Rejilla Estimada</div>
+                <div class="info-value" id="gridProfitPerGrid-spot">--</div>
+            </div>
+            <div class="info-item">
+                <div class="info-label">Ganancia de Rejilla</div>
+                <div class="info-value" id="gridProfit-spot">+0.00 USDT</div>
+            </div>
+            <div class="info-item">
+                <div class="info-label">PnL Trend</div>
+                <div class="info-value" id="trendPnl-spot">+0.00 USDT</div>
+            </div>
+        </div>
+
+        <div class="stats-card">
+            <h3>Configuracion</h3>
+            <div class="fee-info">
+                <strong>⚠️ Fee por transaccion: <span id="currentFee-spot">0.00%</span></strong> (configurable)
+            </div>
+            <p><strong>Rango de Trading:</strong> <span id="tradingRange-spot">--</span></p>
+            <p><strong>Tamano por Rejilla:</strong> <span id="gridSize-spot">--</span></p>
+            <p><strong>Inversion por Rejilla:</strong> <span id="investmentPerGrid-spot">--</span></p>
+            <p><strong>Porcentaje por Rejilla:</strong> <span id="gridPercentDisplay-spot">--</span></p>
+            <p><strong>Estado:</strong> <span id="botStatus-spot">Inactivo</span></p>
+            <p><strong>Total Ejecuciones:</strong> <span id="totalExecutions-spot">0</span></p>
+        </div>
+
+        <div class="stats-card" id="executionsCard-spot" style="display: none;">
+            <h3>Ultimas Ejecuciones</h3>
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressFill-spot" style="width: 0%;"></div>
+            </div>
+            <div id="executionsList-spot" style="max-height: 150px; overflow-y: auto;"></div>
+        </div>
+
+        <div class="chart-container">
+            <canvas id="priceChart-spot"></canvas>
+        </div>
+    </div>
+</div>

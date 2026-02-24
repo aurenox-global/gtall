@@ -1,0 +1,313 @@
+<!-- Header with Controls -->
+<div class="portfolio-header">
+    <h2 class="section-title">
+        <div class="section-icon">📊</div>
+        Portfolio Dashboard
+    </h2>
+    <div class="portfolio-controls">
+        <button class="portfolio-btn" id="refreshPortfolio">🔄<br/>Refresh</button>
+        <button class="portfolio-btn" id="addManualData" style="background: linear-gradient(45deg, #27ae60, #2ecc71);">➕<br/>Agregar</button>
+        <button class="portfolio-btn" id="updateCryptoPrices" style="background: linear-gradient(45deg, #9b59b6, #8e44ad);" onclick="updateAllCryptoPrices()">🪙<br/>Precios</button>
+        <button class="portfolio-btn" id="resetPortfolio" style="background: linear-gradient(45deg, #e74c3c, #c0392b);">🗑️<br/>Reset</button>
+        <button class="portfolio-btn" id="exportPortfolio">📊<br/>Export</button>
+        <select id="portfolioTimeframe" class="portfolio-select">
+            <option value="1d">1 Dia</option>
+            <option value="7d" selected>7 Dias</option>
+            <option value="30d">30 Dias</option>
+            <option value="90d">90 Dias</option>
+            <option value="1y">1 Ano</option>
+        </select>
+    </div>
+</div>
+
+<!-- Manual Data Entry Modal -->
+<div id="manualDataModal" class="modal-overlay" style="display: none;">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>➕ Agregar Datos Manuales al Portfolio</h3>
+            <button class="modal-close" onclick="closeManualDataModal()">×</button>
+        </div>
+        <div class="modal-body">
+            <!-- Crypto Investment Section -->
+            <div class="form-group">
+                <h4 style="color: #f39c12; margin-bottom: 15px; border-bottom: 1px solid rgba(243, 156, 18, 0.3); padding-bottom: 5px;">
+                    🪙 Inversion en Criptomonedas
+                </h4>
+
+                <div class="two-column">
+                    <div class="form-group">
+                        <label for="cryptoSymbol">Moneda</label>
+                        <select id="cryptoSymbol" onchange="updateCryptoPrice()">
+                            <option value="">Selecciona una moneda</option>
+                            <option value="BTCUSDT">Bitcoin (BTC)</option>
+                            <option value="ETHUSDT">Ethereum (ETH)</option>
+                            <option value="BNBUSDT">Binance Coin (BNB)</option>
+                            <option value="ADAUSDT">Cardano (ADA)</option>
+                            <option value="SOLUSDT">Solana (SOL)</option>
+                            <option value="DOTUSDT">Polkadot (DOT)</option>
+                            <option value="LINKUSDT">Chainlink (LINK)</option>
+                            <option value="MATICUSDT">Polygon (MATIC)</option>
+                            <option value="AVAXUSDT">Avalanche (AVAX)</option>
+                            <option value="UNIUSDT">Uniswap (UNI)</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="cryptoQuantity">Cantidad de Monedas</label>
+                        <input type="number" id="cryptoQuantity" placeholder="Ej: 0.5" step="0.000001" min="0.000001" onchange="calculateCryptoValue()">
+                    </div>
+                </div>
+
+                <div class="two-column">
+                    <div class="form-group">
+                        <label for="entryPrice">Precio de Entrada (USDT)</label>
+                        <input type="number" id="entryPrice" placeholder="Ej: 45000" step="0.01" min="0.01" onchange="calculateCryptoValue()">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="currentPrice">Precio Actual (USDT)</label>
+                        <div style="display: flex; gap: 10px; align-items: center;">
+                            <input type="number" id="currentPrice" placeholder="Cargando..." step="0.01" min="0.01" readonly style="flex: 1;">
+                            <button type="button" onclick="updateCryptoPrice()" style="padding: 8px 12px; background: #3498db; border: none; border-radius: 6px; color: white; cursor: pointer; font-size: 12px;">
+                                🔄
+                            </button>
+                        </div>
+                        <small style="color: #3498db; font-size: 11px; margin-top: 5px; display: block;">
+                            💰 Actualizado en tiempo real desde Binance
+                        </small>
+                        <div id="priceUpdateStatus" style="margin-top: 5px; font-size: 11px; color: #bdc3c7;"></div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="totalInvestment">Inversion Total (USDT)</label>
+                    <input type="number" id="totalInvestment" placeholder="0.00" step="0.01" readonly>
+                </div>
+
+                <div class="form-group">
+                    <label for="currentValue">Valor Actual (USDT)</label>
+                    <input type="number" id="currentValue" placeholder="0.00" step="0.01" readonly>
+                </div>
+
+                <div class="form-group">
+                    <label for="unrealizedPnl">PnL No Realizado (USDT)</label>
+                    <input type="number" id="unrealizedPnl" placeholder="0.00" step="0.01" readonly>
+                    <div id="pnlPercentage" style="margin-top: 5px; font-weight: bold; font-size: 14px;"></div>
+                </div>
+            </div>
+
+            <!-- Portfolio Summary Section -->
+            <div class="form-group">
+                <h4 style="color: #f39c12; margin-bottom: 15px; border-bottom: 1px solid rgba(243, 156, 18, 0.3); padding-bottom: 5px;">
+                    📊 Resumen del Portfolio
+                </h4>
+
+                <div class="form-group">
+                    <label for="manualTotalValue">Valor Total del Portfolio (USDT)</label>
+                    <input type="number" id="manualTotalValue" placeholder="Ej: 15000.50" step="0.01" min="0" onchange="updatePortfolioSummary()">
+                </div>
+
+                <div class="form-group">
+                    <label for="manualDailyPnl">PnL Diario (USDT)</label>
+                    <input type="number" id="manualDailyPnl" placeholder="Ej: 250.75" step="0.01" onchange="updatePortfolioSummary()">
+                    <small style="color: #bdc3c7;">Usa numeros negativos para perdidas</small>
+                </div>
+
+                <div class="form-group">
+                    <label for="manualTotalTrades">Total de Trades</label>
+                    <input type="number" id="manualTotalTrades" placeholder="Ej: 45" min="0" step="1" onchange="updatePortfolioSummary()">
+                </div>
+
+                <div class="form-group">
+                    <label for="manualWinRate">Win Rate (%)</label>
+                    <input type="number" id="manualWinRate" placeholder="Ej: 65.5" step="0.1" min="0" max="100" onchange="updatePortfolioSummary()">
+                </div>
+
+                <div class="form-group">
+                    <label for="manualSharpeRatio">Sharpe Ratio</label>
+                    <input type="number" id="manualSharpeRatio" placeholder="Ej: 1.25" step="0.01" onchange="updatePortfolioSummary()">
+                </div>
+
+                <div class="form-group">
+                    <label for="manualMaxDrawdown">Maximo Drawdown (%)</label>
+                    <input type="number" id="manualMaxDrawdown" placeholder="Ej: 12.5" step="0.1" min="0" max="100" onchange="updatePortfolioSummary()">
+                </div>
+
+                <div class="form-group">
+                    <label for="manualDate">Fecha de los Datos</label>
+                    <input type="datetime-local" id="manualDate">
+                </div>
+
+                <div class="form-group">
+                    <label for="manualNotes">Notas (Opcional)</label>
+                    <textarea id="manualNotes" placeholder="Agrega notas sobre estos datos..." rows="3"></textarea>
+                </div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn-start" onclick="saveManualData()">💾 Guardar Datos</button>
+            <button class="btn-stop" onclick="closeManualDataModal()">❌ Cancelar</button>
+        </div>
+    </div>
+</div>
+
+<!-- Main Metrics Grid -->
+<div class="portfolio-grid">
+    <div class="metric-card clickable" data-metric="total-value">
+        <div class="metric-header">
+            <div class="metric-icon">💰</div>
+            <div class="metric-label">Valor Total</div>
+        </div>
+        <div class="metric-value" id="portfolio-total-value">$0.00</div>
+        <div class="metric-change" id="portfolio-total-change">$0.00 (0.00%)</div>
+        <div class="metric-trend" id="portfolio-total-trend">📈</div>
+    </div>
+
+    <div class="metric-card clickable" data-metric="daily-pnl">
+        <div class="metric-header">
+            <div class="metric-icon">📅</div>
+            <div class="metric-label">PnL Diario</div>
+        </div>
+        <div class="metric-value" id="portfolio-daily-pnl">$0.00</div>
+        <div class="metric-change" id="portfolio-daily-change">0.00%</div>
+        <div class="metric-trend" id="portfolio-daily-trend">📊</div>
+    </div>
+
+    <div class="metric-card clickable" data-metric="total-trades">
+        <div class="metric-header">
+            <div class="metric-icon">🔄</div>
+            <div class="metric-label">Trades Totales</div>
+        </div>
+        <div class="metric-value" id="portfolio-total-trades">0</div>
+        <div class="metric-change" id="portfolio-trades-change">0 hoy</div>
+        <div class="metric-trend" id="portfolio-trades-trend">📈</div>
+    </div>
+
+    <div class="metric-card clickable" data-metric="win-rate">
+        <div class="metric-header">
+            <div class="metric-icon">🎯</div>
+            <div class="metric-label">Win Rate</div>
+        </div>
+        <div class="metric-value" id="portfolio-win-rate">0.0%</div>
+        <div class="metric-change" id="portfolio-win-change">0.0%</div>
+        <div class="metric-trend" id="portfolio-win-trend">⚖️</div>
+    </div>
+</div>
+
+<!-- Charts and Data Section -->
+<div class="portfolio-main">
+    <div class="portfolio-left">
+        <!-- Portfolio Value Chart -->
+        <div class="chart-section">
+            <div class="chart-header">
+                <h3>📈 Evolucion del Portfolio</h3>
+                <div class="chart-controls">
+                    <button class="chart-btn active" data-chart="value">Valor</button>
+                    <button class="chart-btn" data-chart="pnl">PnL</button>
+                    <button class="chart-btn" data-chart="allocation">Distribucion</button>
+                </div>
+            </div>
+            <div class="chart-container" style="height: 400px;">
+                <canvas id="portfolioChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Holdings Distribution -->
+        <div class="holdings-section">
+            <div class="section-header">
+                <h3>💼 Holdings Actuales</h3>
+                <button class="holdings-btn" id="rebalancePortfolio">⚖️ Rebalancear</button>
+            </div>
+            <div id="portfolio-holdings" class="holdings-grid"></div>
+        </div>
+
+        <!-- Manual Data History -->
+        <div class="holdings-section">
+            <div class="section-header">
+                <h3>📝 Historial de Datos Manuales</h3>
+                <button class="holdings-btn" id="viewAllManualData" onclick="viewAllManualData()">📊 Ver Todo</button>
+            </div>
+            <div id="manual-data-history" class="holdings-grid">
+                <div style="text-align: center; color: #bdc3c7; padding: 20px;">
+                    No hay datos manuales registrados
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="portfolio-right">
+        <!-- Performance Metrics -->
+        <div class="performance-section">
+            <h3>📊 Metricas de Performance</h3>
+            <div class="performance-grid">
+                <div class="performance-item">
+                    <span class="performance-label">ROI Total</span>
+                    <span class="performance-value" id="portfolio-roi-total">0.00%</span>
+                </div>
+                <div class="performance-item">
+                    <span class="performance-label">ROI Anualizado</span>
+                    <span class="performance-value" id="portfolio-roi-annual">0.00%</span>
+                </div>
+                <div class="performance-item">
+                    <span class="performance-label">Sharpe Ratio</span>
+                    <span class="performance-value" id="portfolio-sharpe">0.00</span>
+                </div>
+                <div class="performance-item">
+                    <span class="performance-label">Max Drawdown</span>
+                    <span class="performance-value" id="portfolio-drawdown">0.00%</span>
+                </div>
+                <div class="performance-item">
+                    <span class="performance-label">Volatilidad</span>
+                    <span class="performance-value" id="portfolio-volatility">0.00%</span>
+                </div>
+                <div class="performance-item">
+                    <span class="performance-label">Mejor Trade</span>
+                    <span class="performance-value" id="portfolio-best-trade">$0.00</span>
+                </div>
+                <div class="performance-item">
+                    <span class="performance-label">Peor Trade</span>
+                    <span class="performance-value" id="portfolio-worst-trade">$0.00</span>
+                </div>
+                <div class="performance-item">
+                    <span class="performance-label">Avg Trade</span>
+                    <span class="performance-value" id="portfolio-avg-trade">$0.00</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Risk Management -->
+        <div class="risk-section">
+            <h3>🛡️ Gestion de Riesgo</h3>
+            <div class="risk-indicators">
+                <div class="risk-item">
+                    <div class="risk-gauge" id="risk-level-gauge">
+                        <div class="gauge-fill" style="width: 60%;"></div>
+                    </div>
+                    <span class="risk-label">Nivel de Riesgo</span>
+                    <span class="risk-value" id="risk-level-value">Moderado</span>
+                </div>
+                <div class="risk-item">
+                    <div class="risk-gauge" id="diversification-gauge">
+                        <div class="gauge-fill" style="width: 75%;"></div>
+                    </div>
+                    <span class="risk-label">Diversificacion</span>
+                    <span class="risk-value" id="diversification-value">75/100</span>
+                </div>
+                <div class="risk-item">
+                    <div class="risk-gauge" id="exposure-gauge">
+                        <div class="gauge-fill" style="width: 40%;"></div>
+                    </div>
+                    <span class="risk-label">Exposicion</span>
+                    <span class="risk-value" id="exposure-value">40%</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Trades -->
+        <div class="trades-section">
+            <h3>📈 Trades Recientes</h3>
+            <div id="recent-trades" class="trades-list"></div>
+            <button class="trades-btn" id="viewAllTrades">Ver Todos los Trades</button>
+        </div>
+    </div>
+</div>

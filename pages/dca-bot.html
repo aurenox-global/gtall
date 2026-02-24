@@ -1,0 +1,96 @@
+<div class="container">
+    <div class="control-panel">
+        <h2 class="section-title">
+            <div class="section-icon">💰</div>
+            DCA Bot (Dollar Cost Averaging)
+        </h2>
+
+        <div class="form-group">
+            <label for="dca-symbol">Criptomoneda</label>
+            <select id="dca-symbol">
+                <option value="BTCUSDT">Bitcoin (BTC)</option>
+                <option value="ETHUSDT">Ethereum (ETH)</option>
+                <option value="BNBUSDT">Binance Coin (BNB)</option>
+                <option value="ADAUSDT">Cardano (ADA)</option>
+                <option value="SOLUSDT">Solana (SOL)</option>
+            </select>
+        </div>
+
+        <div class="two-column">
+            <div class="form-group">
+                <label for="dca-amount">Cantidad por Compra (USDT)</label>
+                <input type="number" id="dca-amount" value="0" min="10" step="1">
+            </div>
+            <div class="form-group">
+                <label for="dca-frequency">Frecuencia</label>
+                <select id="dca-frequency">
+                    <option value="daily">Diario</option>
+                    <option value="weekly">Semanal</option>
+                    <option value="monthly">Mensual</option>
+                    <option value="custom">Personalizado</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label for="dca-target">Meta Total (USDT)</label>
+            <input type="number" id="dca-target" value="0" min="100" step="50">
+        </div>
+
+        <div class="form-group">
+            <h4>📅 Configuracion de Tiempo</h4>
+            <div class="two-column">
+                <div>
+                    <label for="dca-start-time">Hora de Ejecucion</label>
+                    <input type="time" id="dca-start-time" value="10:00">
+                </div>
+                <div>
+                    <label for="dca-start-date">Fecha de Inicio</label>
+                    <input type="date" id="dca-start-date">
+                </div>
+            </div>
+        </div>
+
+        <div class="allocation-info">
+            💡 <strong>Estrategia DCA:</strong> Compras regulares automaticas para reducir el impacto de la volatilidad
+        </div>
+
+        <div class="button-group">
+            <button class="btn-start" id="startDCA">
+                <span class="status-indicator status-inactive"></span>
+                Iniciar DCA Bot
+            </button>
+            <button class="btn-stop" id="stopDCA" disabled>
+                <span class="status-indicator status-inactive"></span>
+                Detener DCA Bot
+            </button>
+        </div>
+
+        <div id="messageArea-dca"></div>
+    </div>
+
+    <div class="main-display">
+        <div class="stats-card">
+            <h3>Estado del DCA Bot</h3>
+            <p><strong>Estado:</strong> <span id="dca-status">Inactivo</span></p>
+            <p><strong>Progreso:</strong> <span id="dca-progress">$0 / $0 (0%)</span></p>
+            <p><strong>Proxima Ejecucion:</strong> <span id="dca-next-execution">--</span></p>
+            <p><strong>Precio Promedio:</strong> <span id="dca-avg-price">--</span></p>
+            <p><strong>Total Invertido:</strong> <span id="dca-total-invested">$0</span></p>
+            <p><strong>Cantidad Acumulada:</strong> <span id="dca-total-quantity">0 BTC</span></p>
+        </div>
+
+        <div class="dca-schedule">
+            <h3>📅 Historial de Ejecuciones</h3>
+            <div id="dca-executions">
+                <div style="text-align: center; color: #bdc3c7; padding: 20px;">
+                    No hay ejecuciones aun
+                </div>
+            </div>
+        </div>
+
+        <div class="chart-container">
+            <canvas id="dcaChart"></canvas>
+        </div>
+    </div>
+</div>

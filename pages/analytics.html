@@ -1,0 +1,86 @@
+<div class="container">
+    <div class="control-panel">
+        <h2 class="section-title">
+            <div class="section-icon">📊</div>
+            Analytics & Backtesting
+        </h2>
+
+        <div class="form-group">
+            <h4>🔄 Backtest Strategy</h4>
+            <div class="mode-selector">
+                <div class="mode-btn active" data-strategy="sma-cross">SMA Cross</div>
+                <div class="mode-btn" data-strategy="rsi">RSI Strategy</div>
+                <div class="mode-btn" data-strategy="macd">MACD Strategy</div>
+            </div>
+        </div>
+
+        <div class="two-column">
+            <div class="form-group">
+                <label for="backtest-start">Fecha Inicio</label>
+                <input type="date" id="backtest-start" value="2024-01-01">
+            </div>
+            <div class="form-group">
+                <label for="backtest-end">Fecha Fin</label>
+                <input type="date" id="backtest-end">
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label for="backtest-capital">Capital Inicial</label>
+            <input type="number" id="backtest-capital" value="0" min="0" step="100">
+        </div>
+
+        <div class="button-group">
+            <button class="btn-start" id="runBacktest">🔄 Ejecutar Backtest</button>
+            <button class="btn-stop" id="exportResults">📊 Exportar Resultados</button>
+        </div>
+
+        <div id="messageArea-analytics"></div>
+    </div>
+
+    <div class="main-display">
+        <div class="stats-card">
+            <h3>📈 Resultados del Backtest</h3>
+            <div class="grid-info">
+                <div class="info-item">
+                    <div class="info-label">ROI Total</div>
+                    <div class="info-value" id="backtest-roi">--</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Sharpe Ratio</div>
+                    <div class="info-value" id="backtest-sharpe">--</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Max Drawdown</div>
+                    <div class="info-value" id="backtest-drawdown">--</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Win Rate</div>
+                    <div class="info-value" id="backtest-winrate">--</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="indicators-panel">
+            <h3>🎯 Strategy Parameters</h3>
+            <div id="strategy-params">
+                <div class="indicator-item">
+                    <span>Total Trades</span>
+                    <span id="backtest-trades">--</span>
+                </div>
+                <div class="indicator-item">
+                    <span>Avg Trade Duration</span>
+                    <span id="backtest-duration">--</span>
+                </div>
+                <div class="indicator-item">
+                    <span>Profit Factor</span>
+                    <span id="backtest-profit-factor">--</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="chart-container">
+            <canvas id="backtestChart"></canvas>
+        </div>
+    </div>
+</div>

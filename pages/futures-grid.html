@@ -1,0 +1,172 @@
+<div class="container">
+    <div class="control-panel">
+        <h2 class="section-title">
+            <div class="section-icon">⚡</div>
+            Futures Grid Bot
+        </h2>
+
+        <div class="form-group">
+            <label for="symbol-futures">Par de Trading</label>
+            <select id="symbol-futures">
+                <option value="BTCUSDT">BTC/USDT Perpetuo</option>
+                <option value="ETHUSDT">ETH/USDT Perpetuo</option>
+                <option value="TONUSDT">TON/USDT Perpetuo</option>
+                <option value="BNBUSDT">BNB/USDT Perpetuo</option>
+                <option value="ADAUSDT">ADA/USDT Perpetuo</option>
+                <option value="SOLUSDT">SOL/USDT Perpetuo</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label>Modo de Futures Grid</label>
+            <div class="mode-selector">
+                <div class="mode-btn" data-mode="neutral">NEUTRAL</div>
+                <div class="mode-btn active" data-mode="long">LONG</div>
+                <div class="mode-btn" data-mode="short">SHORT</div>
+            </div>
+            <div class="futures-info" id="modeInfo-futures">
+                <strong>LONG:</strong> Adecuado para mercados alcistas volatiles. Inicia con posicion larga.
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label for="leverage-futures">Apalancamiento</label>
+            <div class="leverage-selector">
+                <div class="leverage-btn" data-leverage="1">1x</div>
+                <div class="leverage-btn" data-leverage="2">2x</div>
+                <div class="leverage-btn" data-leverage="5">5x</div>
+                <div class="leverage-btn active" data-leverage="10">10x</div>
+                <div class="leverage-btn" data-leverage="20">20x</div>
+                <div class="leverage-btn" data-leverage="50">50x</div>
+                <div class="leverage-btn" data-leverage="100">100x</div>
+            </div>
+            <div class="liquidation-warning" id="leverageWarning-futures">
+                ⚠️ Mayor apalancamiento = Mayor riesgo de liquidacion
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label for="investment-futures">Margen Total (USDT)</label>
+            <input type="number" id="investment-futures" value="0" step="0.01" min="10">
+        </div>
+
+        <div class="form-group">
+            <label>Asignacion Inicial</label>
+            <div class="two-column">
+                <div class="percentage-input">
+                    <label for="cryptoPercentage-futures">En <span id="cryptoSymbol-futures">BTC</span></label>
+                    <input type="number" id="cryptoPercentage-futures" value="0" min="0" max="100" step="1">
+                </div>
+                <div class="percentage-input">
+                    <label for="usdtPercentage-futures">En USDT</label>
+                    <input type="number" id="usdtPercentage-futures" value="0" min="0" max="100" step="1">
+                </div>
+            </div>
+            <div class="allocation-info" id="allocationInfo-futures">
+                📊 Asignacion: 0% BTC (~0 USDT) + 0% USDT (0 USDT)
+            </div>
+        </div>
+
+        <div class="two-column">
+            <div class="form-group">
+                <label for="maxPrice-futures">Precio Superior</label>
+                <input type="number" id="maxPrice-futures" value="0" step="0.01">
+            </div>
+            <div class="form-group">
+                <label for="minPrice-futures">Precio Inferior</label>
+                <input type="number" id="minPrice-futures" value="0" step="0.01">
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label for="entryPrice-futures">Precio de Activacion</label>
+            <input type="number" id="entryPrice-futures" value="0" step="0.01">
+        </div>
+
+        <div class="two-column">
+            <div class="form-group">
+                <label for="gridCount-futures">Numero de Rejillas</label>
+                <input type="number" id="gridCount-futures" value="0" min="2" max="150">
+            </div>
+            <div class="form-group">
+                <label for="tradingAmount-futures">Capital por Grid (USDT)</label>
+                <input type="number" id="tradingAmount-futures" value="0" step="0.01" readonly>
+            </div>
+        </div>
+
+        <div class="date-inputs">
+            <div class="form-group">
+                <label for="startDate-futures">Fecha Desde</label>
+                <input type="datetime-local" id="startDate-futures">
+            </div>
+            <div class="form-group">
+                <label for="endDate-futures">Fecha Hasta</label>
+                <input type="datetime-local" id="endDate-futures">
+            </div>
+        </div>
+
+        <div class="button-group">
+            <button class="btn-start" id="startBot-futures">
+                <span class="status-indicator status-inactive"></span>
+                Iniciar Bot
+            </button>
+            <button class="btn-stop" id="stopBot-futures" disabled>
+                <span class="status-indicator status-inactive"></span>
+                Cancelar Bot
+            </button>
+        </div>
+
+        <div id="messageArea-futures"></div>
+    </div>
+
+    <div class="main-display">
+        <div class="profit-display">
+            <div class="profit-amount" id="totalProfit-futures">+0.00 USDT</div>
+            <div class="profit-percentage" id="profitPercentage-futures">(+0.00%)</div>
+        </div>
+
+        <div class="grid-info">
+            <div class="info-item">
+                <div class="info-label">Precio Actual</div>
+                <div class="info-value" id="currentPrice-futures">--</div>
+            </div>
+            <div class="info-item">
+                <div class="info-label">Trades Completados</div>
+                <div class="info-value" id="completedTrades-futures">0</div>
+            </div>
+            <div class="info-item">
+                <div class="info-label">Grid Profit</div>
+                <div class="info-value" id="gridProfit-futures">+0.00 USDT</div>
+            </div>
+            <div class="info-item">
+                <div class="info-label">PnL No Realizado</div>
+                <div class="info-value" id="unrealizedPnl-futures">+0.00 USDT</div>
+            </div>
+        </div>
+
+        <div class="stats-card">
+            <h3>Configuracion Futures Grid</h3>
+            <p><strong>Modo:</strong> <span id="currentMode-futures">LONG</span></p>
+            <p><strong>Apalancamiento:</strong> <span id="currentLeverage-futures">10x</span></p>
+            <p><strong>Asignacion Inicial:</strong> <span id="currentAllocation-futures">0% BTC + 0% USDT</span></p>
+            <p><strong>Rango:</strong> <span id="tradingRange-futures">--</span></p>
+            <p><strong>Intervalo por Grid:</strong> <span id="gridInterval-futures">--</span></p>
+            <p><strong>Posicion por Grid:</strong> <span id="positionPerGrid-futures">--</span></p>
+            <p><strong>Precio de Liquidacion:</strong> <span id="liquidationPrice-futures">--</span></p>
+            <p><strong>Total Ejecuciones:</strong> <span id="totalExecutions-futures">0</span></p>
+            <p><strong>Funding Fees:</strong> <span id="totalFundingFees-futures">0.00 USDT</span></p>
+        </div>
+
+        <div class="stats-card" id="executionsCard-futures" style="display: none;">
+            <h3>Ejecuciones Recientes</h3>
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressFill-futures" style="width: 0%;"></div>
+            </div>
+            <div id="executionsList-futures" style="max-height: 150px; overflow-y: auto;"></div>
+        </div>
+
+        <div class="chart-container">
+            <canvas id="priceChart-futures"></canvas>
+        </div>
+    </div>
+</div>
