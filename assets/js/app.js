@@ -1,0 +1,7112 @@
+
+        // Data Persistence Manager
+        class DataManager {
+            static saveData(key, data) {
+                try {
+                    localStorage.setItem(key, JSON.stringify(data));
+                } catch (error) {
+                    console.error('Error saving data:', error);
+                }
+            }
+
+            static loadData(key, defaultValue = null) {
+                try {
+                    const data = localStorage.getItem(key);
+                    return data ? JSON.parse(data) : defaultValue;
+                } catch (error) {
+                    console.error('Error loading data:', error);
+                    return defaultValue;
+                }
+            }
+
+            static clearAllData() {
+                try {
+                    // Lista completa de todas las claves de datos
+                    const keys = [
+                        'manualSpotData',
+                        'manualFuturesData',
+                        'spotGridData',
+                        'futuresGridData',
+                        'dcaBotData',
+                        'alertsData',
+                        'portfolioData',
+                        'analyticsData'
+                    ];
+                    
+                    keys.forEach(key => {
+                        localStorage.removeItem(key);
+                    });
+                    
+                    console.log('All trading data cleared from localStorage');
+                    return true;
+                } catch (error) {
+                    console.error('Error clearing data:', error);
+                    return false;
+                }
+            }
+
+            static resetAllInstances() {
+                try {
+                    // Detener todos los intervalos y limpiar estados
+                    if (window.manualSpotTrader) {
+                        window.manualSpotTrader.usdtBalance = 0;
+                        window.manualSpotTrader.cryptoBalance = 0;
+                        window.manualSpotTrader.totalValue = 0;
+                        window.manualSpotTrader.totalPnl = 0;
+                        window.manualSpotTrader.totalTrades = 0;
+                        window.manualSpotTrader.capitalNet = 0;
+                        window.manualSpotTrader.activePositions = [];
+                        window.manualSpotTrader.tradeHistory = [];
+                        window.manualSpotTrader.updateDisplay();
+                    }
+                    
+                    if (window.manualFuturesTrader) {
+                        window.manualFuturesTrader.availableMargin = 0;
+                        window.manualFuturesTrader.usedMargin = 0;
+                        window.manualFuturesTrader.unrealizedPnl = 0;
+                        window.manualFuturesTrader.realizedPnl = 0;
+                        window.manualFuturesTrader.fundingFees = 0;
+                        window.manualFuturesTrader.totalTrades = 0;
+                        window.manualFuturesTrader.capitalNet = 0;
+                        window.manualFuturesTrader.activePositions = [];
+                        window.manualFuturesTrader.tradeHistory = [];
+                        window.manualFuturesTrader.updateDisplay();
+                    }
+                    
+                    if (window.dcaBot) {
+                        if (window.dcaBot.dcaInterval) {
+                            clearInterval(window.dcaBot.dcaInterval);
+                        }
+                        window.dcaBot.isRunning = false;
+                        window.dcaBot.totalInvested = 0;
+                        window.dcaBot.totalQuantity = 0;
+                        window.dcaBot.averagePrice = 0;
+                        window.dcaBot.executions = [];
+                        window.dcaBot.nextExecution = null;
+                        window.dcaBot.updateDisplay();
+                    }
+                    
+                    if (window.alertsSystem) {
+                        window.alertsSystem.alerts = [];
+                        window.alertsSystem.activeCount = 0;
+                        window.alertsSystem.triggeredToday = 0;
+                        window.alertsSystem.totalCount = 0;
+                        window.alertsSystem.updateDisplay();
+                    }
+                    
+                    if (window.spotGridBot) {
+                        window.spotGridBot.stopBot();
+                    }
+                    
+                    if (window.futuresGridBot) {
+                        window.futuresGridBot.stopBot();
+                    }
+                    
+                    console.log('All instances reset successfully');
+                } catch (error) {
+                    console.error('Error resetting instances:', error);
+                }
+            }
+
+            static setupResetButton() {
+                const resetButton = document.getElementById('resetAllData');
+                if (!resetButton) {
+                    console.error('Reset button not found');
+                    return;
+                }
+                
+                resetButton.addEventListener('click', (event) => {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    
+                    const confirmation = confirm(
+                        '⚠️ ¿Estás seguro de que quieres RESETEAR TODOS LOS DATOS?\n\n' +
+                        'Esto borrará:\n' +
+                        '• Todos los balances\n' +
+                        '• Todas las posiciones activas\n' +
+                        '• Todo el historial de trades\n' +
+                        '• Configuraciones guardadas\n' +
+                        '• Datos del DCA Bot\n' +
+                        '• Alertas creadas\n\n' +
+                        'Esta acción NO se puede deshacer.'
+                    );
+                    
+                    if (confirmation) {
+                        try {
+                            // Mostrar mensaje de procesamiento
+                            resetButton.disabled = true;
+                            resetButton.textContent = '🔄 Borrando datos...';
+                            
+                            // Limpiar datos
+                            const success = DataManager.clearAllData();
+                            
+                            if (success) {
+                                resetButton.textContent = '✅ Datos borrados';
+                                
+                                // Resetear todas las instancias sin recargar la página
+                                DataManager.resetAllInstances();
+                                
+                                // Mostrar mensaje de éxito
+                                setTimeout(() => {
+                                    resetButton.disabled = false;
+                                    resetButton.textContent = '🗑️ RESETEAR TODOS LOS DATOS';
+                                    alert('✅ Todos los datos han sido borrados exitosamente');
+                                }, 1000);
+                            } else {
+                                throw new Error('Failed to clear data');
+                            }
+                        } catch (error) {
+                            console.error('Error during reset:', error);
+                            resetButton.disabled = false;
+                            resetButton.textContent = '🗑️ RESETEAR TODOS LOS DATOS';
+                            alert('❌ Error al borrar los datos. Por favor recarga la página manualmente.');
+                        }
+                    }
+                });
+            }
+        }
+
+        // Tab Management
+        async function loadTabContents() {
+            const tabContents = Array.from(document.querySelectorAll('.tab-content[data-src]'));
+            if (tabContents.length === 0) return;
+
+            await Promise.all(tabContents.map(async (tab) => {
+                if (tab.dataset.loaded === 'true') return;
+                const src = tab.dataset.src;
+                if (!src) return;
+
+                try {
+                    const response = await fetch(src, { cache: 'no-store' });
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status}`);
+                    }
+                    const html = await response.text();
+                    tab.innerHTML = html;
+                    tab.dataset.loaded = 'true';
+                } catch (error) {
+                    tab.innerHTML = `<div class="error">No se pudo cargar ${src}. ${error.message}</div>`;
+                    tab.dataset.loaded = 'error';
+                }
+            }));
+        }
+
+        class TabManager {
+            constructor() {
+                // Cargar pestaña activa desde localStorage o usar 'spot-grid' como default
+                this.activeTab = localStorage.getItem('activeTab') || 'spot-grid';
+                this.enforceInterval = null;
+                this.init();
+            }
+
+            init() {
+                this.setupTabEventListeners();
+                // Aplicar la pestaña cargada desde localStorage
+                this.switchTab(this.activeTab);
+                if (!this.enforceInterval) {
+                    this.enforceInterval = setInterval(() => this.ensureActiveTabState(), 1000);
+                }
+            }
+
+            setupTabEventListeners() {
+                const tabButtons = document.querySelectorAll('.tab-btn');
+                console.log('Setting up tab listeners for', tabButtons.length, 'buttons');
+                
+                tabButtons.forEach(btn => {
+                    if (btn.dataset.tab) {
+                        btn.addEventListener('click', (e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            console.log('Tab clicked:', btn.dataset.tab);
+                            this.switchTab(btn.dataset.tab);
+                        });
+                        console.log('Listener added for tab:', btn.dataset.tab);
+                    } else {
+                        console.warn('Tab button missing data-tab attribute:', btn);
+                    }
+                });
+            }
+
+            ensureActiveTabState() {
+                try {
+                    const currentActiveContent = document.querySelector('.tab-content.active');
+                    const currentActiveButton = document.querySelector('.tab-btn.active');
+                    const shouldBeContent = document.getElementById(this.activeTab);
+                    const shouldBeButton = document.querySelector(`[data-tab="${this.activeTab}"]`);
+                    if (!shouldBeContent || !shouldBeButton) return;
+
+                    if (currentActiveContent !== shouldBeContent) {
+                        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                        shouldBeContent.classList.add('active');
+                    }
+                    if (currentActiveButton !== shouldBeButton) {
+                        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+                        shouldBeButton.classList.add('active');
+                    }
+                } catch (e) {}
+            }
+
+            switchTab(tabId) {
+                if (!tabId) {
+                    console.error('No tabId provided to switchTab');
+                    return;
+                }
+                
+                console.log('Switching to tab:', tabId);
+                
+                try {
+                    // Hide all tab contents
+                    document.querySelectorAll('.tab-content').forEach(content => {
+                        content.classList.remove('active');
+                    });
+
+                    // Remove active class from all tab buttons
+                    document.querySelectorAll('.tab-btn').forEach(btn => {
+                        btn.classList.remove('active');
+                    });
+
+                    // Show selected tab content
+                    const targetTab = document.getElementById(tabId);
+                    if (targetTab) {
+                        targetTab.classList.add('active');
+                        console.log('Tab content shown:', tabId);
+                    } else {
+                        console.error('Tab content not found:', tabId);
+                        return;
+                    }
+
+                    // Add active class to selected tab button
+                    const targetButton = document.querySelector(`[data-tab="${tabId}"]`);
+                    if (targetButton) {
+                        targetButton.classList.add('active');
+                        console.log('Tab button activated:', tabId);
+                    } else {
+                        console.error('Tab button not found:', tabId);
+                    }
+
+                    this.activeTab = tabId;
+                    
+                    // Guardar pestaña activa en localStorage
+                    localStorage.setItem('activeTab', tabId);
+
+                    // Initialize respective modules when tab is activated
+                    this.initializeTabModule(tabId);
+                    
+                    console.log('Tab switch completed successfully');
+                } catch (error) {
+                    console.error('Error switching tabs:', error);
+                }
+            }
+
+            initializeTabModule(tabId) {
+                switch(tabId) {
+                    case 'spot-grid':
+                        if (!window.spotGridBot) {
+                            window.spotGridBot = new SpotGridTradingBot();
+                        }
+                        break;
+                    case 'futures-grid':
+                        if (!window.futuresGridBot) {
+                            window.futuresGridBot = new FuturesGridTradingBot();
+                        }
+                        break;
+                    case 'manual-spot':
+                        if (!window.manualSpotTrader) {
+                            window.manualSpotTrader = new ManualSpotTrader();
+                        }
+                        break;
+                    case 'manual-futures':
+                        if (!window.manualFuturesTrader) {
+                            window.manualFuturesTrader = new ManualFuturesTrader();
+                        }
+                        break;
+                    case 'dca-bot':
+                        if (!window.dcaBot) {
+                            window.dcaBot = new DCABot();
+                        }
+                        break;
+                    case 'portfolio':
+                        if (!window.portfolioManager) {
+                            window.portfolioManager = new PortfolioManager();
+                        }
+                        break;
+                    case 'analytics':
+                        if (!window.analytics) {
+                            window.analytics = new Analytics();
+                        }
+                        break;
+                    case 'alerts':
+                        if (!window.alertsSystem) {
+                            window.alertsSystem = new AlertsSystem();
+                        }
+                        break;
+                }
+            }
+        }
+
+        // Spot Grid Trading Bot (Modified from original)
+        class SpotGridTradingBot {
+            constructor() {
+                this.isRunning = false;
+                this.currentPrice = 0;
+                this.priceHistory = [];
+                this.profits = [];
+                this.totalProfit = 0;
+                this.gridProfit = 0;
+                this.trendPnl = 0;
+                this.completedRounds = 0;
+                this.gridLevels = [];
+                this.priceChart = null;
+                this.updateInterval = null;
+                this.simulationSpeed = 1000;
+                this.historicalData = null;
+                this.historicalIndex = 0;
+                this.lastPrice = 0;
+                this.gridExecutions = [];
+                this.btcAllocation = 0;
+                this.usdtAllocation = 0;
+                this.btcQuantityPerGrid = 0;
+                this.gridInterval = 0;
+                this.suffix = '-spot';
+                // Inventario y lotes para emparejar compras/ventas
+                this.availableBaseQty = 0;
+                this.availableQuote = 0;
+                this.openLots = [];
+                
+                this.init();
+            }
+
+            init() {
+                this.setupEventListeners();
+                this.initializeChart();
+                this.setDefaultDates();
+                this.updateGridCalculations();
+                this.getCurrentPrice();
+                this.updateAllocationDisplay();
+                this.updateFeeDisplay();
+            }
+
+            setupEventListeners() {
+                document.getElementById(`startBot${this.suffix}`).addEventListener('click', () => this.startBot());
+                document.getElementById(`stopBot${this.suffix}`).addEventListener('click', () => this.stopBot());
+                
+                ['maxPrice', 'minPrice', 'gridCount', 'investment', 'gridPercent', 'tpPercent', 'slPercent', 'feePercent'].forEach(id => {
+                    const element = document.getElementById(`${id}${this.suffix}`);
+                    if (element) {
+                        element.addEventListener('input', () => this.updateGridCalculations());
+                    }
+                });
+
+                ['cryptoAllocation', 'stablecoinAllocation', 'investment'].forEach(id => {
+                    const element = document.getElementById(`${id}${this.suffix}`);
+                    if (element) {
+                        element.addEventListener('input', () => {
+                            this.validateAllocation();
+                            this.updateAllocationDisplay();
+                            this.updateGridCalculations();
+                        });
+                    }
+                });
+
+                const symbolElement = document.getElementById(`symbol${this.suffix}`);
+                if (symbolElement) {
+                    symbolElement.addEventListener('change', () => {
+                        this.getCurrentPrice();
+                        this.updateGridCalculations();
+                        this.updateAllocationDisplay();
+                    });
+                }
+
+                // Update fee display when fee changes
+                const feeElement = document.getElementById(`feePercent${this.suffix}`);
+                if (feeElement) {
+                    feeElement.addEventListener('input', () => this.updateFeeDisplay());
+                }
+            }
+
+            validateAllocation() {
+                const cryptoPercent = parseFloat(document.getElementById(`cryptoAllocation${this.suffix}`).value) || 0;
+                const stablecoinPercent = parseFloat(document.getElementById(`stablecoinAllocation${this.suffix}`).value) || 0;
+                const total = cryptoPercent + stablecoinPercent;
+                
+                const warningElement = document.getElementById(`allocationWarning${this.suffix}`);
+                
+                if (Math.abs(total - 100) > 0.01) {
+                    if (warningElement) {
+                        warningElement.style.display = 'block';
+                        warningElement.textContent = `⚠️ Total: ${total.toFixed(2)}% - Los porcentajes deben sumar 100%`;
+                    }
+                    return false;
+                } else {
+                    if (warningElement) {
+                        warningElement.style.display = 'none';
+                    }
+                    return true;
+                }
+            }
+
+            updateAllocationDisplay() {
+                const totalInvestment = parseFloat(document.getElementById(`investment${this.suffix}`).value) || 0;
+                const cryptoPercent = parseFloat(document.getElementById(`cryptoAllocation${this.suffix}`).value) || 0;
+                const stablecoinPercent = parseFloat(document.getElementById(`stablecoinAllocation${this.suffix}`).value) || 0;
+                
+                const cryptoAmount = totalInvestment * (cryptoPercent / 100);
+                const stablecoinAmount = totalInvestment * (stablecoinPercent / 100);
+                
+                const symbolElement = document.getElementById(`symbol${this.suffix}`);
+                const symbol = symbolElement ? symbolElement.value.replace('USDT', '') : 'BTC';
+                
+                const cryptoDisplay = document.getElementById(`cryptoAllocationDisplay${this.suffix}`);
+                const stablecoinDisplay = document.getElementById(`stablecoinAllocationDisplay${this.suffix}`);
+                
+                if (cryptoDisplay) {
+                    cryptoDisplay.textContent = `${symbol}: ${cryptoPercent}% ($${cryptoAmount.toFixed(2)})`;
+                }
+                if (stablecoinDisplay) {
+                    stablecoinDisplay.textContent = `USDT: ${stablecoinPercent}% ($${stablecoinAmount.toFixed(2)})`;
+                }
+            }
+
+            updateFeeDisplay() {
+                const feePercent = parseFloat(document.getElementById(`feePercent${this.suffix}`)?.value) || 0.20;
+                const currentFeeElement = document.getElementById('currentFee-spot');
+                if (currentFeeElement) {
+                    currentFeeElement.textContent = `${feePercent.toFixed(2)}%`;
+                }
+            }
+
+            setDefaultDates() {
+                const startDate = new Date('2025-08-20T10:00:00');
+                const endDate = new Date();
+                
+                const startElement = document.getElementById(`startDate${this.suffix}`);
+                const endElement = document.getElementById(`endDate${this.suffix}`);
+                
+                if (startElement) startElement.value = startDate.toISOString().slice(0, 16);
+                if (endElement) endElement.value = endDate.toISOString().slice(0, 16);
+            }
+
+            updateGridCalculations() {
+                const maxPrice = parseFloat(document.getElementById(`maxPrice${this.suffix}`).value);
+                const minPrice = parseFloat(document.getElementById(`minPrice${this.suffix}`).value);
+                const gridCount = parseInt(document.getElementById(`gridCount${this.suffix}`).value);
+                const totalInvestment = parseFloat(document.getElementById(`investment${this.suffix}`).value);
+
+                if (maxPrice <= minPrice) {
+                    this.showMessage('El precio máximo debe ser mayor al mínimo', 'error');
+                    return;
+                }
+
+                const cryptoAllocationPercent = parseFloat(document.getElementById(`cryptoAllocation${this.suffix}`).value) || 57.96;
+                const stablecoinAllocationPercent = parseFloat(document.getElementById(`stablecoinAllocation${this.suffix}`).value) || 42.04;
+                
+                if (!this.validateAllocation()) {
+                    return;
+                }
+                
+                const cryptoAllocation = totalInvestment * (cryptoAllocationPercent / 100);
+                const stablecoinAllocation = totalInvestment * (stablecoinAllocationPercent / 100);
+                
+                const priceRange = maxPrice - minPrice;
+                let gridInterval = priceRange / (gridCount - 1);
+                const gridPercent = parseFloat(document.getElementById(`gridPercent${this.suffix}`).value) || 0;
+                
+                const entryPrice = parseFloat(document.getElementById(`entryPrice${this.suffix}`).value) || ((maxPrice + minPrice) / 2);
+                let cryptoQuantityPerGrid = cryptoAllocation / (gridCount * entryPrice);
+                
+                const rangeElement = document.getElementById(`tradingRange${this.suffix}`);
+                const sizeElement = document.getElementById(`gridSize${this.suffix}`);
+                const investmentElement = document.getElementById(`investmentPerGrid${this.suffix}`);
+                
+                if (rangeElement) {
+                    rangeElement.textContent = `${minPrice.toLocaleString()} - ${maxPrice.toLocaleString()}`;
+                }
+                if (sizeElement) {
+                    if (gridPercent > 0) {
+                        sizeElement.textContent = `${gridPercent.toFixed(2)}% por nivel (geométrico)`;
+                    } else {
+                        sizeElement.textContent = `${gridInterval.toFixed(2)} USDT por nivel`;
+                    }
+                }
+                if (investmentElement) {
+                    const symbol = document.getElementById(`symbol${this.suffix}`).value.replace('USDT', '');
+                    investmentElement.textContent = `${cryptoQuantityPerGrid.toFixed(6)} ${symbol} por rejilla`;
+                }
+
+                // Update grid percent display
+                const gridPercentDisplayElement = document.getElementById(`gridPercentDisplay${this.suffix}`);
+                if (gridPercentDisplayElement) {
+                    gridPercentDisplayElement.textContent = gridPercent > 0 ? `${gridPercent.toFixed(2)}%` : 'Auto';
+                }
+                
+                // Construcción de niveles y cantidades por nivel (modelo Pionex):
+                // - Órdenes de COMPRA por debajo del precio de entrada: repartir el USDT disponible por orden de compra
+                // - Órdenes de VENTA por encima del precio de entrada: repartir la cantidad de crypto disponible por orden de venta
+                this.gridLevels = [];
+                const levels = [];
+                if (gridPercent > 0) {
+                    const ratio = 1 + gridPercent / 100;
+                    const startPrice = minPrice;
+                    for (let i = 0; i < gridCount; i++) {
+                        levels.push(startPrice * Math.pow(ratio, i));
+                    }
+                } else {
+                    for (let i = 0; i < gridCount; i++) {
+                        levels.push(minPrice + (i * gridInterval));
+                    }
+                }
+
+                const buyLevels = levels.filter(p => p < entryPrice);
+                const sellLevels = levels.filter(p => p > entryPrice);
+                const buyLevelsCount = buyLevels.length;
+                const sellLevelsCount = sellLevels.length;
+
+                const totalBaseQty = cryptoAllocation / entryPrice; // Crypto disponible inicial
+                const sellQtyPerOrder = sellLevelsCount > 0 ? (totalBaseQty / sellLevelsCount) : 0;
+                const buyUsdtPerOrder = buyLevelsCount > 0 ? (stablecoinAllocation / buyLevelsCount) : 0;
+
+                levels.forEach(price => {
+                    let qty = 0;
+                    if (price < entryPrice) {
+                        // Compra: fijar cantidad para gastar ~USDT por orden
+                        qty = buyUsdtPerOrder > 0 ? (buyUsdtPerOrder / price) : 0;
+                    } else if (price > entryPrice) {
+                        // Venta: repartir el inventario inicial en partes iguales
+                        qty = sellQtyPerOrder;
+                    } else {
+                        qty = 0;
+                    }
+                    this.gridLevels.push({ price, cryptoQuantity: qty, gridInterval: gridInterval });
+                });
+
+                this.cryptoAllocation = cryptoAllocation;
+                this.usdtAllocation = stablecoinAllocation;
+                this.cryptoQuantityPerGrid = cryptoQuantityPerGrid;
+                this.gridInterval = gridInterval;
+
+                // Estimar ganancia por rejilla (neto) usando gridPercent o intervalo con fee editable
+                let est = 0;
+                let grossPct = 0;
+                if (gridPercent > 0) {
+                    grossPct = gridPercent;
+                    est = buyUsdtPerOrder * (gridPercent / 100);
+                } else {
+                    grossPct = entryPrice > 0 ? (gridInterval / entryPrice) * 100 : 0;
+                    est = (buyUsdtPerOrder || (entryPrice * cryptoQuantityPerGrid)) * (grossPct / 100);
+                }
+                const perGridEl = document.getElementById(`gridProfitPerGrid${this.suffix}`);
+                if (perGridEl) {
+                    if (gridPercent > 0) {
+                        perGridEl.textContent = `${est >= 0 ? '+' : ''}${est.toFixed(2)} USDT (~${gridPercent.toFixed(2)}%)`;
+                    } else {
+                        perGridEl.textContent = `${est >= 0 ? '+' : ''}${est.toFixed(2)} USDT`;
+                    }
+                }
+            }
+
+            async getCurrentPrice() {
+                try {
+                    const symbolElement = document.getElementById(`symbol${this.suffix}`);
+                    const symbol = symbolElement ? symbolElement.value : 'BTCUSDT';
+                    const response = await fetch(`https://api.binance.com/api/v3/ticker/price?symbol=${symbol}`);
+                    const data = await response.json();
+                    
+                    // Update connection status
+                    this.updateConnectionStatus(true);
+                    
+                    this.currentPrice = parseFloat(data.price);
+                    const currentPriceElement = document.getElementById(`currentPrice${this.suffix}`);
+                    if (currentPriceElement) {
+                        currentPriceElement.textContent = 
+                            `${this.currentPrice.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})} USDT`;
+                    }
+                    
+                    if (!this.isRunning) {
+                        const entryPriceElement = document.getElementById(`entryPrice${this.suffix}`);
+                        if (entryPriceElement) {
+                            entryPriceElement.value = this.currentPrice;
+                        }
+                    }
+                } catch (error) {
+                    this.updateConnectionStatus(false);
+                    this.showMessage('Error al obtener precio actual: ' + error.message, 'error');
+                }
+            }
+
+            updateConnectionStatus(connected) {
+                const statusElement = document.getElementById('connectionStatus');
+                if (statusElement) {
+                    if (connected) {
+                        statusElement.innerHTML = '🟢 Conectado';
+                        statusElement.style.color = '#2ecc71';
+                    } else {
+                        statusElement.innerHTML = '🔴 Error de Conexión';
+                        statusElement.style.color = '#e74c3c';
+                    }
+                }
+            }
+
+            initializeChart() {
+                const ctx = document.getElementById(`priceChart${this.suffix}`);
+                if (!ctx) return;
+                
+                this.priceChart = new Chart(ctx.getContext('2d'), {
+                    type: 'line',
+                    data: {
+                        labels: [],
+                        datasets: [{
+                            label: 'Precio',
+                            data: [],
+                            borderColor: '#3498db',
+                            backgroundColor: 'rgba(52, 152, 219, 0.1)',
+                            borderWidth: 3,
+                            fill: true,
+                            tension: 0.4
+                        }, {
+                            label: 'Ganancias',
+                            data: [],
+                            borderColor: '#2ecc71',
+                            backgroundColor: 'rgba(46, 204, 113, 0.1)',
+                            borderWidth: 2,
+                            fill: false,
+                            yAxisID: 'y1'
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                labels: {
+                                    color: '#ecf0f1'
+                                }
+                            }
+                        },
+                        scales: {
+                            x: {
+                                ticks: { color: '#bdc3c7' },
+                                grid: { color: 'rgba(255, 255, 255, 0.1)' }
+                            },
+                            y: {
+                                type: 'linear',
+                                display: true,
+                                position: 'left',
+                                ticks: { color: '#bdc3c7' },
+                                grid: { color: 'rgba(255, 255, 255, 0.1)' }
+                            },
+                            y1: {
+                                type: 'linear',
+                                display: true,
+                                position: 'right',
+                                ticks: { color: '#2ecc71' },
+                                grid: { drawOnChartArea: false }
+                            }
+                        }
+                    }
+                });
+            }
+
+            async startBot() {
+                if (this.isRunning) return;
+
+                try {
+                    this.validateInputs();
+                    this.showMessage('Cargando datos históricos...', 'success');
+                    
+                    await this.loadHistoricalData();
+                    
+                    this.isRunning = true;
+                    this.updateButtonStates();
+                    this.resetSimulation();
+                    this.startHistoricalSimulation();
+                    
+                    this.showMessage(`Bot iniciado - Simulando ${this.historicalData.length} períodos históricos`, 'success');
+                } catch (error) {
+                    this.showMessage('Error al iniciar bot: ' + error.message, 'error');
+                    this.isRunning = false;
+                    this.updateButtonStates();
+                }
+            }
+
+            async loadHistoricalData() {
+                const symbolElement = document.getElementById(`symbol${this.suffix}`);
+                const startDateElement = document.getElementById(`startDate${this.suffix}`);
+                const endDateElement = document.getElementById(`endDate${this.suffix}`);
+                
+                const symbol = symbolElement ? symbolElement.value : 'BTCUSDT';
+                const startDate = startDateElement ? startDateElement.value : '';
+                const endDate = endDateElement ? endDateElement.value : '';
+                
+                if (!startDate || !endDate) {
+                    throw new Error('Por favor selecciona fechas válidas');
+                }
+
+                const startTime = new Date(startDate).getTime();
+                const endTime = new Date(endDate).getTime();
+                
+                if (startTime >= endTime) {
+                    throw new Error('La fecha de inicio debe ser anterior a la fecha final');
+                }
+
+                this.selectedStartTime = startTime;
+                this.selectedEndTime = endTime;
+
+                // Selección de intervalo según rango
+                const rangeMs = endTime - startTime;
+                const oneDay = 24 * 60 * 60 * 1000;
+                let interval = '5m';
+                if (rangeMs > 10 * oneDay && rangeMs <= 30 * oneDay) interval = '15m';
+                else if (rangeMs > 30 * oneDay && rangeMs <= 180 * oneDay) interval = '1h';
+                else if (rangeMs > 180 * oneDay && rangeMs <= 720 * oneDay) interval = '4h';
+                else if (rangeMs > 720 * oneDay) interval = '1d';
+
+                try {
+                    const klines = await this.fetchKlinesPaginated(symbol, interval, startTime, endTime);
+                    this.historicalData = klines;
+                    this.historicalIndex = 0;
+                    if (this.historicalData.length === 0) {
+                        throw new Error('No se encontraron datos para el período seleccionado');
+                    }
+                    console.log(`Cargados ${this.historicalData.length} puntos (${interval})`);
+                } catch (error) {
+                    throw new Error(`Error al cargar datos históricos: ${error.message}`);
+                }
+            }
+
+            async fetchKlinesPaginated(symbol, interval, startTime, endTime) {
+                const all = [];
+                let from = startTime;
+                const limit = 1000;
+                while (from < endTime) {
+                    const url = `https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=${interval}&startTime=${from}&endTime=${endTime}&limit=${limit}`;
+                    const res = await fetch(url);
+                    if (!res.ok) throw new Error(`API ${res.status}`);
+                    const batch = await res.json();
+                    if (!Array.isArray(batch) || batch.length === 0) break;
+                    all.push(...batch);
+                    const lastOpenTime = batch[batch.length - 1][0];
+                    // Avanzar al siguiente
+                    from = lastOpenTime + 1;
+                    // Seguridad: evitar bucles infinitos
+                    if (batch.length < limit) break;
+                }
+                return all;
+            }
+
+            startHistoricalSimulation() {
+                this.simulationSpeed = 200;
+                this.updateInterval = setInterval(() => {
+                    if (!this.isRunning) return;
+
+                    try {
+                        this.simulateGridTrading();
+                        
+                        if (this.historicalIndex % 5 === 0) {
+                            this.updateChart();
+                            this.updateDisplay();
+                        }
+                    } catch (error) {
+                        console.error('Simulation error:', error);
+                        this.showMessage('Error en simulación: ' + error.message, 'error');
+                    }
+                }, this.simulationSpeed);
+            }
+
+            stopBot() {
+                this.isRunning = false;
+                this.updateButtonStates();
+                
+                if (this.updateInterval) {
+                    clearInterval(this.updateInterval);
+                    this.updateInterval = null;
+                }
+                
+                const totalExecutions = this.gridExecutions.length;
+                const finalProfit = this.totalProfit;
+                
+                this.showMessage(
+                    `Bot detenido - ${totalExecutions} ejecuciones, Ganancia: ${finalProfit >= 0 ? '+' : ''}${finalProfit.toFixed(2)} USDT`, 
+                    'error'
+                );
+            }
+
+            validateInputs() {
+                const maxPrice = parseFloat(document.getElementById(`maxPrice${this.suffix}`).value);
+                const minPrice = parseFloat(document.getElementById(`minPrice${this.suffix}`).value);
+                const investment = parseFloat(document.getElementById(`investment${this.suffix}`).value);
+                const gridCount = parseInt(document.getElementById(`gridCount${this.suffix}`).value);
+
+                if (maxPrice <= minPrice) throw new Error('Precio máximo debe ser mayor al mínimo');
+                if (investment < 10) throw new Error('Inversión mínima: 10 USDT');
+                if (gridCount < 2) throw new Error('Mínimo 2 rejillas');
+                if (gridCount > 150) throw new Error('Máximo 150 rejillas');
+                if (!this.validateAllocation()) throw new Error('Los porcentajes de asignación deben sumar 100%');
+            }
+
+            resetSimulation() {
+                this.totalProfit = 0;
+                this.gridProfit = 0;
+                this.trendPnl = 0;
+                this.completedRounds = 0;
+                this.priceHistory = [];
+                this.profits = [];
+                this.gridExecutions = [];
+                this.lastPrice = 0;
+                this.historicalIndex = 0;
+                // Inicializar inventarios según asignación
+                const totalInvestment = parseFloat(document.getElementById(`investment${this.suffix}`).value) || 0;
+                const entryPrice = parseFloat(document.getElementById(`entryPrice${this.suffix}`).value) || this.currentPrice || 0;
+                const cryptoAllocationPercent = parseFloat(document.getElementById(`cryptoAllocation${this.suffix}`).value) || 57.96;
+                const stablecoinAllocationPercent = parseFloat(document.getElementById(`stablecoinAllocation${this.suffix}`).value) || 42.04;
+                const cryptoAllocation = totalInvestment * (cryptoAllocationPercent / 100);
+                const stablecoinAllocation = totalInvestment * (stablecoinAllocationPercent / 100);
+                this.availableBaseQty = entryPrice > 0 ? (cryptoAllocation / entryPrice) : 0;
+                this.availableQuote = stablecoinAllocation;
+                this.openLots = [];
+                this.updateDisplay();
+                
+                if (this.priceChart) {
+                    this.priceChart.data.labels = [];
+                    this.priceChart.data.datasets[0].data = [];
+                    this.priceChart.data.datasets[1].data = [];
+                    this.priceChart.update();
+                }
+            }
+
+            async simulateGridTrading() {
+                if (this.historicalData && this.historicalIndex < this.historicalData.length) {
+                    const currentData = this.historicalData[this.historicalIndex];
+                    const simulatedPrice = parseFloat(currentData[4]);
+                    
+                    this.priceHistory.push({
+                        time: new Date(currentData[6]),
+                        price: simulatedPrice
+                    });
+
+                    this.processGridOrders(simulatedPrice);
+                    
+                    const entryPrice = parseFloat(document.getElementById(`entryPrice${this.suffix}`).value);
+                    const totalInvestment = parseFloat(document.getElementById(`investment${this.suffix}`).value);
+                    const cryptoAllocationPercent = parseFloat(document.getElementById(`cryptoAllocation${this.suffix}`).value) || 57.96;
+                    const priceChange = (simulatedPrice - entryPrice) / entryPrice;
+                    
+                    const cryptoAllocation = totalInvestment * (cryptoAllocationPercent / 100);
+                    this.trendPnl = cryptoAllocation * priceChange;
+                    
+                    // Check Take Profit and Stop Loss
+                    this.checkTakeProfitStopLoss(simulatedPrice, entryPrice);
+                    
+                    this.totalProfit = this.gridProfit + this.trendPnl;
+                    this.profits.push(this.totalProfit);
+                    
+                    this.historicalIndex++;
+                    
+                    const currentPriceElement = document.getElementById(`currentPrice${this.suffix}`);
+                    if (currentPriceElement) {
+                        currentPriceElement.textContent = 
+                            `${simulatedPrice.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})} USDT`;
+                    }
+                } else {
+                    // Al finalizar, si el rango llega a "hoy", usar precio actual como último punto
+                    try {
+                        const symbolElement = document.getElementById(`symbol${this.suffix}`);
+                        const symbol = symbolElement ? symbolElement.value : 'BTCUSDT';
+                        const now = Date.now();
+                        if (this.selectedEndTime && (now - this.selectedEndTime) < (24 * 60 * 60 * 1000)) {
+                            const resp = await fetch(`https://api.binance.com/api/v3/ticker/price?symbol=${symbol}`);
+                            const data = await resp.json();
+                            const livePrice = parseFloat(data.price);
+                            if (!isNaN(livePrice)) {
+                                // procesar último cruce hasta precio actual
+                                this.processGridOrders(livePrice);
+                                const entryPrice = parseFloat(document.getElementById(`entryPrice${this.suffix}`).value);
+                                const totalInvestment = parseFloat(document.getElementById(`investment${this.suffix}`).value);
+                                const cryptoAllocationPercent = parseFloat(document.getElementById(`cryptoAllocation${this.suffix}`).value) || 57.96;
+                                const cryptoAllocation = totalInvestment * (cryptoAllocationPercent / 100);
+                                const priceChange = (livePrice - entryPrice) / entryPrice;
+                                this.trendPnl = cryptoAllocation * priceChange;
+                                this.totalProfit = this.gridProfit + this.trendPnl;
+                                this.priceHistory.push({ time: new Date(now), price: livePrice });
+                                const currentPriceElement = document.getElementById(`currentPrice${this.suffix}`);
+                                if (currentPriceElement) {
+                                    currentPriceElement.textContent = `${livePrice.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})} USDT`;
+                                }
+                                this.updateChart();
+                                this.updateDisplay();
+                            }
+                        }
+                    } catch (e) {
+                        // silencioso
+                    }
+                    this.stopBot();
+                    this.showMessage('Simulación completada con datos históricos', 'success');
+                }
+            }
+
+            processGridOrders(currentPrice) {
+                if (this.lastPrice === 0) {
+                    this.lastPrice = currentPrice;
+                    return;
+                }
+
+                this.gridLevels.forEach((level, index) => {
+                    const crossedUp = this.lastPrice < level.price && currentPrice >= level.price;
+                    const crossedDown = this.lastPrice > level.price && currentPrice <= level.price;
+                    
+                    if (crossedUp) {
+                        this.executeSellOrder(level, currentPrice);
+                    }
+                    
+                    if (crossedDown) {
+                        this.executeBuyOrder(level, currentPrice);
+                    }
+                });
+
+                // TP/SL globales respecto al precio de entrada
+                const tpPct = parseFloat(document.getElementById(`tpPercent${this.suffix}`)?.value) || 0;
+                const slPct = parseFloat(document.getElementById(`slPercent${this.suffix}`)?.value) || 0;
+                const entryPrice = parseFloat(document.getElementById(`entryPrice${this.suffix}`).value) || 0;
+                if (entryPrice > 0) {
+                    const tpPrice = tpPct > 0 ? entryPrice * (1 + tpPct / 100) : null;
+                    const slPrice = slPct > 0 ? entryPrice * (1 - slPct / 100) : null;
+                    if (tpPrice && currentPrice >= tpPrice) {
+                        // Cerrar posiciones abiertas: vender inventario disponible al precio actual
+                        if (this.availableBaseQty > 0) {
+                            const tmpLevel = { price: currentPrice, cryptoQuantity: this.availableBaseQty };
+                            this.executeSellOrder(tmpLevel, currentPrice);
+                        }
+                    }
+                    if (slPrice && currentPrice <= slPrice) {
+                        // Cerrar posiciones abiertas: vender inventario disponible al precio actual
+                        if (this.availableBaseQty > 0) {
+                            const tmpLevel = { price: currentPrice, cryptoQuantity: this.availableBaseQty };
+                            this.executeSellOrder(tmpLevel, currentPrice);
+                        }
+                    }
+                }
+
+                this.lastPrice = currentPrice;
+            }
+
+            checkTakeProfitStopLoss(currentPrice, entryPrice) {
+                const tpPercent = parseFloat(document.getElementById(`tpPercent${this.suffix}`)?.value) || 0;
+                const slPercent = parseFloat(document.getElementById(`slPercent${this.suffix}`)?.value) || 0;
+                
+                if (tpPercent > 0 || slPercent > 0) {
+                    const priceChange = (currentPrice - entryPrice) / entryPrice;
+                    
+                    // Check Take Profit
+                    if (tpPercent > 0 && priceChange >= tpPercent / 100) {
+                        this.showMessage(`🎯 Take Profit alcanzado: +${(priceChange * 100).toFixed(2)}%`, 'success');
+                        this.stopBot();
+                        return;
+                    }
+                    
+                    // Check Stop Loss
+                    if (slPercent > 0 && priceChange <= -slPercent / 100) {
+                        this.showMessage(`🛑 Stop Loss alcanzado: ${(priceChange * 100).toFixed(2)}%`, 'error');
+                        this.stopBot();
+                        return;
+                    }
+                }
+            }
+
+            executeSellOrder(level, currentPrice) {
+                const sellPrice = level.price;
+                const cryptoQuantity = level.cryptoQuantity;
+                const usdtReceived = sellPrice * cryptoQuantity;
+                
+                const feePct = (parseFloat(document.getElementById(`feePercent${this.suffix}`)?.value) || 0.20) / 100;
+                const tradingFee = usdtReceived * feePct;
+                const netUsdtReceived = usdtReceived - tradingFee;
+                
+                // Verificar inventario para vender
+                if (this.availableBaseQty < cryptoQuantity) {
+                    return; // no hay inventario suficiente, no vender
+                }
+
+                const matchingBuy = this.findMatchingBuyOrder(level.price, cryptoQuantity);
+                let gridProfit = 0;
+                
+                if (matchingBuy) {
+                    gridProfit = (sellPrice - matchingBuy.price) * cryptoQuantity - tradingFee - matchingBuy.fee;
+                    this.completedRounds++;
+                } else {
+                    gridProfit = netUsdtReceived - (cryptoQuantity * this.getInitialCryptoPrice());
+                }
+                
+                this.gridProfit += gridProfit;
+                // Actualizar inventarios: vendimos crypto, recibimos USDT
+                this.availableBaseQty -= cryptoQuantity;
+                this.availableQuote += netUsdtReceived;
+                
+                const symbol = document.getElementById(`symbol${this.suffix}`).value.replace('USDT', '');
+                
+                this.gridExecutions.push({
+                    type: 'SELL',
+                    price: sellPrice,
+                    cryptoQuantity: cryptoQuantity,
+                    usdtAmount: netUsdtReceived,
+                    fee: tradingFee,
+                    profit: gridProfit,
+                    time: new Date(),
+                    symbol: symbol
+                });
+            }
+
+            executeBuyOrder(level, currentPrice) {
+                const buyPrice = level.price;
+                const cryptoQuantity = level.cryptoQuantity;
+                const usdtSpent = buyPrice * cryptoQuantity;
+                
+                const feePct = (parseFloat(document.getElementById(`feePercent${this.suffix}`)?.value) || 0.20) / 100;
+                const tradingFee = usdtSpent * feePct;
+                const totalUsdtCost = usdtSpent + tradingFee;
+                // Verificar USDT disponible
+                if (this.availableQuote < totalUsdtCost) {
+                    return; // no hay USDT suficiente, no comprar
+                }
+
+                const symbol = document.getElementById(`symbol${this.suffix}`).value.replace('USDT', '');
+                
+                this.gridExecutions.push({
+                    type: 'BUY',
+                    price: buyPrice,
+                    cryptoQuantity: cryptoQuantity,
+                    usdtAmount: totalUsdtCost,
+                    fee: tradingFee,
+                    profit: 0,
+                    time: new Date(),
+                    symbol: symbol
+                });
+
+                // Guardar lote abierto para emparejar futuras ventas
+                this.openLots.push({ price: buyPrice, qty: cryptoQuantity, fee: tradingFee });
+                // Actualizar inventarios: gastamos USDT y aumentamos crypto
+                this.availableQuote -= totalUsdtCost;
+                this.availableBaseQty += cryptoQuantity;
+            }
+
+            findMatchingBuyOrder(sellPrice, quantity) {
+                // Usar el lote más reciente por debajo del precio de venta
+                for (let i = this.openLots.length - 1; i >= 0; i--) {
+                    const lot = this.openLots[i];
+                    if (lot.qty > 0 && lot.price <= sellPrice) {
+                        const originalQty = lot.qty;
+                        const consume = Math.min(originalQty, quantity);
+                        lot.qty = originalQty - consume;
+                        if (lot.qty <= 0) {
+                            this.openLots.splice(i, 1);
+                        }
+                        const feeProportion = originalQty > 0 ? lot.fee * (consume / originalQty) : 0;
+                        return { price: lot.price, fee: feeProportion };
+                    }
+                }
+                return null;
+            }
+
+            getInitialCryptoPrice() {
+                return parseFloat(document.getElementById(`entryPrice${this.suffix}`).value) || this.currentPrice;
+            }
+
+            updateChart() {
+                if (!this.priceChart || this.priceHistory.length === 0) return;
+
+                const labels = this.priceHistory.map(item => 
+                    item.time.toLocaleTimeString('es-ES', { 
+                        hour: '2-digit', 
+                        minute: '2-digit', 
+                        second: '2-digit' 
+                    })
+                );
+                
+                const priceData = this.priceHistory.map(item => item.price);
+                const profitData = this.profits.map(profit => profit);
+
+                this.priceChart.data.labels = labels;
+                this.priceChart.data.datasets[0].data = priceData;
+                this.priceChart.data.datasets[1].data = profitData;
+                this.priceChart.update('none');
+            }
+
+            updateDisplay() {
+                const profitElement = document.getElementById(`totalProfit${this.suffix}`);
+                const percentageElement = document.getElementById(`profitPercentage${this.suffix}`);
+                const investment = parseFloat(document.getElementById(`investment${this.suffix}`).value);
+                
+                const profitPercentage = (this.totalProfit / investment) * 100;
+                const sign = this.totalProfit >= 0 ? '+' : '';
+                
+                if (profitElement) profitElement.textContent = `${sign}${this.totalProfit.toFixed(2)} USDT`;
+                if (percentageElement) percentageElement.textContent = `(${sign}${profitPercentage.toFixed(2)}%)`;
+                
+                // Calculate completed rounds more accurately
+                this.calculateCompletedRounds();
+                
+                const profitDisplay = document.querySelector('#spot-grid .profit-display');
+                if (profitDisplay) {
+                    if (this.totalProfit >= 0) {
+                        profitDisplay.style.background = 'linear-gradient(135deg, #27ae60, #2ecc71)';
+                    } else {
+                        profitDisplay.style.background = 'linear-gradient(135deg, #e74c3c, #c0392b)';
+                    }
+                }
+
+                const elements = {
+                    [`gridProfit${this.suffix}`]: `+${this.gridProfit.toFixed(2)} USDT`,
+                    [`trendPnl${this.suffix}`]: `${this.trendPnl >= 0 ? '+' : ''}${this.trendPnl.toFixed(2)} USDT`,
+                    [`completedRounds${this.suffix}`]: this.completedRounds,
+                    [`totalExecutions${this.suffix}`]: this.gridExecutions.length,
+                    [`botStatus${this.suffix}`]: this.isRunning ? 'Activo' : 'Inactivo'
+                };
+
+                Object.entries(elements).forEach(([id, value]) => {
+                    const element = document.getElementById(id);
+                    if (element) element.textContent = value;
+                });
+
+                this.updateExecutionsList();
+            }
+
+            calculateCompletedRounds() {
+                // Count complete buy-sell cycles
+                const buyOrders = this.gridExecutions.filter(exec => exec.type === 'BUY');
+                const sellOrders = this.gridExecutions.filter(exec => exec.type === 'SELL');
+                
+                // A round is complete when we have both buy and sell orders
+                // We'll count the minimum of buy and sell orders as completed rounds
+                const completedRounds = Math.min(buyOrders.length, sellOrders.length);
+                
+                // Update the display
+                const completedRoundsElement = document.getElementById(`completedRounds${this.suffix}`);
+                if (completedRoundsElement) {
+                    completedRoundsElement.textContent = completedRounds;
+                }
+                
+                // Also update the total executions
+                const totalExecutionsElement = document.getElementById(`totalExecutions${this.suffix}`);
+                if (totalExecutionsElement) {
+                    totalExecutionsElement.textContent = this.gridExecutions.length;
+                }
+            }
+
+            updateExecutionsList() {
+                const executionsList = document.getElementById(`executionsList${this.suffix}`);
+                const executionsCard = document.getElementById(`executionsCard${this.suffix}`);
+                const progressFill = document.getElementById(`progressFill${this.suffix}`);
+                
+                if (progressFill && this.historicalData && this.historicalData.length > 0) {
+                    const progress = (this.historicalIndex / this.historicalData.length) * 100;
+                    progressFill.style.width = `${progress}%`;
+                }
+                
+                if (executionsList && executionsCard) {
+                    if (this.gridExecutions.length > 0) {
+                        executionsCard.style.display = 'block';
+                        
+                        const lastExecutions = this.gridExecutions.slice(-5).reverse();
+                        executionsList.innerHTML = lastExecutions.map(exec => `
+                            <div class="execution-item">
+                                <div>
+                                    <span class="execution-type ${exec.type === 'BUY' ? 'execution-buy' : 'execution-sell'}">${exec.type}</span>
+                                    <span>${exec.cryptoQuantity.toFixed(6)} ${exec.symbol} @ ${exec.price.toFixed(0)}</span>
+                                </div>
+                                <div style="color: ${exec.profit > 0 ? '#2ecc71' : '#bdc3c7'}; font-weight: bold;">
+                                    ${exec.profit > 0 ? '+' : ''}${exec.profit.toFixed(2)} USDT
+                                </div>
+                            </div>
+                        `).join('');
+                    } else if (this.isRunning) {
+                        executionsCard.style.display = 'block';
+                        executionsList.innerHTML = '<div style="text-align: center; color: #bdc3c7; padding: 20px;">Esperando ejecuciones...</div>';
+                    } else {
+                        executionsCard.style.display = 'none';
+                    }
+                }
+            }
+
+            updateButtonStates() {
+                const startBtn = document.getElementById(`startBot${this.suffix}`);
+                const stopBtn = document.getElementById(`stopBot${this.suffix}`);
+                
+                if (!startBtn || !stopBtn) return;
+                
+                const startIndicator = startBtn.querySelector('.status-indicator');
+                const stopIndicator = stopBtn.querySelector('.status-indicator');
+
+                if (this.isRunning) {
+                    startBtn.disabled = true;
+                    stopBtn.disabled = false;
+                    if (startIndicator) startIndicator.className = 'status-indicator status-active';
+                    if (stopIndicator) stopIndicator.className = 'status-indicator status-inactive';
+                    startBtn.innerHTML = '<span class="status-indicator status-active"></span> Bot Activo';
+                } else {
+                    startBtn.disabled = false;
+                    stopBtn.disabled = true;
+                    if (startIndicator) startIndicator.className = 'status-indicator status-inactive';
+                    if (stopIndicator) stopIndicator.className = 'status-indicator status-inactive';
+                    startBtn.innerHTML = '<span class="status-indicator status-inactive"></span> Iniciar Bot';
+                }
+            }
+
+            showMessage(message, type) {
+                const messageArea = document.getElementById(`messageArea${this.suffix}`);
+                if (messageArea) {
+                    const messageDiv = document.createElement('div');
+                    messageDiv.className = type;
+                    messageDiv.textContent = message;
+                    
+                    messageArea.innerHTML = '';
+                    messageArea.appendChild(messageDiv);
+                    
+                    setTimeout(() => {
+                        if (messageDiv.parentNode) {
+                            messageDiv.remove();
+                        }
+                    }, 5000);
+                }
+            }
+        }
+
+        // Futures Grid Trading Bot (Modified from original)
+        class FuturesGridTradingBot {
+            constructor() {
+                this.isRunning = false;
+                this.currentPrice = 0;
+                this.priceHistory = [];
+                this.profits = [];
+                this.totalProfit = 0;
+                this.gridProfit = 0;
+                this.unrealizedPnl = 0;
+                this.completedTrades = 0;
+                this.gridLevels = [];
+                this.priceChart = null;
+                this.updateInterval = null;
+                this.simulationSpeed = 200;
+                this.historicalData = null;
+                this.historicalIndex = 0;
+                this.lastPrice = 0;
+                this.gridExecutions = [];
+                this.fundingFeeInterval = null;
+                this.totalFundingFees = 0;
+                this.lastFundingTime = 0;
+                this.mode = 'long';
+                this.leverage = 10;
+                this.margin = 0;
+                this.positionSize = 0;
+                this.averageEntryPrice = 0;
+                this.openPositions = [];
+                this.liquidationPrice = 0;
+                this.cryptoPercentage = 50;
+                this.usdtPercentage = 50;
+                this.cryptoAllocation = 0;
+                this.usdtAllocation = 0;
+                this.gridOrders = [];
+                this.suffix = '-futures';
+                
+                this.init();
+            }
+
+            init() {
+                this.setupEventListeners();
+                this.initializeChart();
+                this.setDefaultDates();
+                this.updateAllocationCalculations();
+                this.updateGridCalculations();
+                this.getCurrentPrice();
+                this.updateModeInfo();
+                this.updateSymbolDisplay();
+            }
+
+            setupEventListeners() {
+                document.getElementById(`startBot${this.suffix}`).addEventListener('click', () => this.startBot());
+                document.getElementById(`stopBot${this.suffix}`).addEventListener('click', () => this.stopBot());
+                
+                ['maxPrice', 'minPrice', 'gridCount', 'investment'].forEach(id => {
+                    const element = document.getElementById(`${id}${this.suffix}`);
+                    if (element) {
+                        element.addEventListener('input', () => {
+                            this.updateAllocationCalculations();
+                            this.updateGridCalculations();
+                            if (id === 'maxPrice' || id === 'minPrice') {
+                                this.checkPriceRangeStatus();
+                            }
+                        });
+                    }
+                });
+
+                const cryptoPercentageElement = document.getElementById(`cryptoPercentage${this.suffix}`);
+                if (cryptoPercentageElement) {
+                    cryptoPercentageElement.addEventListener('input', (e) => {
+                        this.handleAllocationChange('crypto', parseInt(e.target.value));
+                    });
+                }
+
+                const usdtPercentageElement = document.getElementById(`usdtPercentage${this.suffix}`);
+                if (usdtPercentageElement) {
+                    usdtPercentageElement.addEventListener('input', (e) => {
+                        this.handleAllocationChange('usdt', parseInt(e.target.value));
+                    });
+                }
+
+                const symbolElement = document.getElementById(`symbol${this.suffix}`);
+                if (symbolElement) {
+                    symbolElement.addEventListener('change', () => {
+                        this.getCurrentPrice();
+                        this.updateGridCalculations();
+                        this.updateSymbolDisplay();
+                        this.updateAllocationCalculations();
+                    });
+                }
+
+                document.querySelectorAll('#futures-grid .mode-btn').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        document.querySelectorAll('#futures-grid .mode-btn').forEach(b => b.classList.remove('active'));
+                        btn.classList.add('active');
+                        this.mode = btn.dataset.mode;
+                        this.updateModeInfo();
+                        this.updateGridCalculations();
+                        
+                        // Recalcular órdenes si el bot está ejecutándose
+                        if (this.isRunning) {
+                            this.initializeGridOrders();
+                        }
+                    });
+                });
+
+                document.querySelectorAll('#futures-grid .leverage-btn').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        document.querySelectorAll('#futures-grid .leverage-btn').forEach(b => b.classList.remove('active'));
+                        btn.classList.add('active');
+                        this.leverage = parseInt(btn.dataset.leverage);
+                        this.updateGridCalculations();
+                    });
+                });
+            }
+
+            updateSymbolDisplay() {
+                const symbolElement = document.getElementById(`symbol${this.suffix}`);
+                const symbol = symbolElement ? symbolElement.value : 'BTCUSDT';
+                const cryptoSymbol = symbol.replace('USDT', '');
+                const cryptoSymbolElement = document.getElementById(`cryptoSymbol${this.suffix}`);
+                if (cryptoSymbolElement) {
+                    cryptoSymbolElement.textContent = cryptoSymbol;
+                }
+                this.updateAllocationCalculations();
+            }
+
+            handleAllocationChange(type, value) {
+                if (value < 0) value = 0;
+                if (value > 100) value = 100;
+                
+                if (type === 'crypto') {
+                    this.cryptoPercentage = value;
+                    this.usdtPercentage = 100 - value;
+                    const usdtElement = document.getElementById(`usdtPercentage${this.suffix}`);
+                    if (usdtElement) usdtElement.value = this.usdtPercentage;
+                } else {
+                    this.usdtPercentage = value;
+                    this.cryptoPercentage = 100 - value;
+                    const cryptoElement = document.getElementById(`cryptoPercentage${this.suffix}`);
+                    if (cryptoElement) cryptoElement.value = this.cryptoPercentage;
+                }
+                
+                this.updateAllocationCalculations();
+                this.updateGridCalculations();
+            }
+
+            updateAllocationCalculations() {
+                const totalMargin = parseFloat(document.getElementById(`investment${this.suffix}`).value) || 0;
+                const symbolElement = document.getElementById(`symbol${this.suffix}`);
+                const symbol = symbolElement ? symbolElement.value : 'BTCUSDT';
+                const cryptoSymbol = symbol.replace('USDT', '');
+                
+                this.cryptoAllocation = (totalMargin * this.cryptoPercentage) / 100;
+                this.usdtAllocation = (totalMargin * this.usdtPercentage) / 100;
+                
+                const allocationInfo = document.getElementById(`allocationInfo${this.suffix}`);
+                if (allocationInfo) {
+                    allocationInfo.innerHTML = `
+                        📊 Asignación: ${this.cryptoPercentage}% ${cryptoSymbol} (~${this.cryptoAllocation.toFixed(0)} USDT) + 
+                        ${this.usdtPercentage}% USDT (${this.usdtAllocation.toFixed(0)} USDT)
+                    `;
+                }
+
+                const currentAllocation = document.getElementById(`currentAllocation${this.suffix}`);
+                if (currentAllocation) {
+                    currentAllocation.textContent = `${this.cryptoPercentage}% ${cryptoSymbol} + ${this.usdtPercentage}% USDT`;
+                }
+            }
+
+            updateModeInfo() {
+                const modeInfo = document.getElementById(`modeInfo${this.suffix}`);
+                const modes = {
+                    neutral: '<strong>NEUTRAL:</strong> Sin posición inicial. Alterna entre long y short según movimiento del precio. <br>🔄 <em>Compra cuando baja, vende cuando sube</em>',
+                    long: '<strong>LONG:</strong> Adecuado para mercados alcistas volátiles. <br>📈 <em>Compra en niveles bajos, vende en niveles altos</em>',
+                    short: '<strong>SHORT:</strong> Adecuado para mercados bajistas volátiles. <br>📉 <em>Vende en niveles altos, compra en niveles bajos</em>'
+                };
+                if (modeInfo) {
+                    modeInfo.innerHTML = modes[this.mode];
+                }
+                
+                // Actualizar información adicional del modo
+                this.updateModeDetails();
+            }
+            
+            updateModeDetails() {
+                const modeDetailsElement = document.getElementById(`modeDetails${this.suffix}`);
+                if (!modeDetailsElement) return;
+                
+                let details = '';
+                switch (this.mode) {
+                    case 'neutral':
+                        details = `Estrategia de mercado neutral que se adapta automáticamente. 
+                        <br>• Compra cuando el precio baja hasta los niveles configurados
+                        <br>• Vende cuando el precio sube hasta los niveles configurados
+                        <br>• Sin sesgo direccional inicial`;
+                        break;
+                    case 'long':
+                        details = `Estrategia alcista optimizada para mercados con tendencia al alza.
+                        <br>• Compra en todos los niveles por debajo del precio actual
+                        <br>• Vende cuando el precio sube para tomar ganancias
+                        <br>• Ideal para mercados volátiles con tendencia alcista`;
+                        break;
+                    case 'short':
+                        details = `Estrategia bajista optimizada para mercados con tendencia a la baja.
+                        <br>• Vende en todos los niveles por encima del precio actual
+                        <br>• Compra cuando el precio baja para cubrir posiciones
+                        <br>• Ideal para mercados volátiles con tendencia bajista`;
+                        break;
+                }
+                
+                modeDetailsElement.innerHTML = details;
+            }
+
+            setDefaultDates() {
+                const startDate = new Date('2025-08-20T10:00:00');
+                const endDate = new Date();
+                
+                const startElement = document.getElementById(`startDate${this.suffix}`);
+                const endElement = document.getElementById(`endDate${this.suffix}`);
+                
+                if (startElement) startElement.value = startDate.toISOString().slice(0, 16);
+                if (endElement) endElement.value = endDate.toISOString().slice(0, 16);
+            }
+
+            updateGridCalculations() {
+                const maxPrice = parseFloat(document.getElementById(`maxPrice${this.suffix}`).value);
+                const minPrice = parseFloat(document.getElementById(`minPrice${this.suffix}`).value);
+                const gridCount = parseInt(document.getElementById(`gridCount${this.suffix}`).value);
+                const margin = parseFloat(document.getElementById(`investment${this.suffix}`).value);
+
+                if (maxPrice <= minPrice) {
+                    this.showMessage('El precio superior debe ser mayor al inferior', 'error');
+                    return;
+                }
+                
+                // Verificar si el precio actual está dentro del rango configurado
+                if (this.currentPrice > 0) {
+                    if (this.currentPrice < minPrice || this.currentPrice > maxPrice) {
+                        this.showMessage(`⚠️ El precio actual (${this.currentPrice.toFixed(2)} USDT) está fuera del rango configurado (${minPrice.toFixed(2)} - ${maxPrice.toFixed(2)} USDT). El bot no se puede iniciar hasta que el precio entre en el rango.`, 'warning');
+                    } else {
+                        // Limpiar mensajes de advertencia anteriores si el precio está en rango
+                        const existingWarning = document.querySelector('.price-range-warning');
+                        if (existingWarning) {
+                            existingWarning.remove();
+                        }
+                    }
+                }
+
+                const priceRange = maxPrice - minPrice;
+                const gridInterval = priceRange / (gridCount - 1);
+                const entryPrice = parseFloat(document.getElementById(`entryPrice${this.suffix}`).value) || ((maxPrice + minPrice) / 2);
+                
+                // Calcular el capital total disponible con apalancamiento
+                const totalCapitalWithLeverage = margin * this.leverage;
+                const availableMarginPerGrid = margin / gridCount; // Margen real por grid
+                const capitalPerGrid = totalCapitalWithLeverage / gridCount; // Capital con apalancamiento por grid
+                const positionSizePerGrid = capitalPerGrid / entryPrice;
+                
+                const tradingAmountElement = document.getElementById(`tradingAmount${this.suffix}`);
+                if (tradingAmountElement) {
+                    tradingAmountElement.value = capitalPerGrid.toFixed(2);
+                }
+                
+                this.calculateLiquidationPrice(entryPrice, margin);
+                
+                const elements = {
+                    [`tradingRange${this.suffix}`]: `${minPrice.toLocaleString()} - ${maxPrice.toLocaleString()}`,
+                    [`gridInterval${this.suffix}`]: `${gridInterval.toFixed(2)} USDT`,
+                    [`positionPerGrid${this.suffix}`]: `${positionSizePerGrid.toFixed(6)} BTC`,
+                    [`currentMode${this.suffix}`]: this.mode.toUpperCase(),
+                    [`currentLeverage${this.suffix}`]: `${this.leverage}x`
+                };
+
+                Object.entries(elements).forEach(([id, value]) => {
+                    const element = document.getElementById(id);
+                    if (element) element.textContent = value;
+                });
+
+                this.gridLevels = [];
+                for (let i = 0; i < gridCount; i++) {
+                    const price = minPrice + (i * gridInterval);
+                    this.gridLevels.push({
+                        price: price,
+                        positionSize: positionSizePerGrid,
+                        margin: availableMarginPerGrid,
+                        filled: false
+                    });
+                }
+
+                this.margin = margin;
+                this.gridInterval = gridInterval;
+            }
+
+            calculateLiquidationPrice(entryPrice, margin) {
+                const maintenanceMarginRate = 0.005;
+                const fees = 0.001;
+                
+                let liquidationPrice;
+                if (this.mode === 'long') {
+                    liquidationPrice = entryPrice * (1 - (1/this.leverage) + maintenanceMarginRate + fees);
+                } else if (this.mode === 'short') {
+                    liquidationPrice = entryPrice * (1 + (1/this.leverage) + maintenanceMarginRate + fees);
+                } else {
+                    liquidationPrice = entryPrice;
+                }
+                
+                this.liquidationPrice = liquidationPrice;
+                const liquidationElement = document.getElementById(`liquidationPrice${this.suffix}`);
+                if (liquidationElement) {
+                    liquidationElement.textContent = liquidationPrice.toFixed(2) + ' USDT';
+                    
+                    if (Math.abs(this.currentPrice - liquidationPrice) / this.currentPrice < 0.1) {
+                        liquidationElement.style.color = '#e74c3c';
+                    } else if (Math.abs(this.currentPrice - liquidationPrice) / this.currentPrice < 0.2) {
+                        liquidationElement.style.color = '#f39c12';
+                    } else {
+                        liquidationElement.style.color = '#2ecc71';
+                    }
+                }
+            }
+
+            async getCurrentPrice() {
+                try {
+                    const symbolElement = document.getElementById(`symbol${this.suffix}`);
+                    const symbol = symbolElement ? symbolElement.value : 'BTCUSDT';
+                    const response = await fetch(`https://api.binance.com/api/v3/ticker/price?symbol=${symbol}`);
+                    const data = await response.json();
+                    
+                    // Update connection status
+                    this.updateConnectionStatus(true);
+                    
+                    this.currentPrice = parseFloat(data.price);
+                    const currentPriceElement = document.getElementById(`currentPrice${this.suffix}`);
+                    if (currentPriceElement) {
+                        currentPriceElement.textContent = 
+                            `${this.currentPrice.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})} USDT`;
+                    }
+                    
+                    // NO cambiar el precio de activación automáticamente
+                    // El usuario debe configurarlo manualmente
+                    // if (!this.isRunning) {
+                    //     const entryPriceElement = document.getElementById(`entryPrice${this.suffix}`);
+                    //     if (entryPriceElement) {
+                    //         entryPriceElement.value = this.currentPrice;
+                    //     }
+                    // }
+                    
+                    this.updateAllocationCalculations();
+                    this.updateGridCalculations();
+                    
+                    // Verificar si el precio está dentro del rango configurado
+                    this.checkPriceRangeStatus();
+                } catch (error) {
+                    this.updateConnectionStatus(false);
+                    this.showMessage('Error al obtener precio actual: ' + error.message, 'error');
+                }
+            }
+            
+            checkPriceRangeStatus() {
+                const maxPrice = parseFloat(document.getElementById(`maxPrice${this.suffix}`).value) || 0;
+                const minPrice = parseFloat(document.getElementById(`minPrice${this.suffix}`).value) || 0;
+                
+                if (maxPrice <= 0 || minPrice <= 0) return;
+                
+                const priceRangeElement = document.getElementById(`tradingRange${this.suffix}`);
+                if (!priceRangeElement) return;
+                
+                if (this.currentPrice < minPrice || this.currentPrice > maxPrice) {
+                    priceRangeElement.style.color = '#e74c3c';
+                    priceRangeElement.style.fontWeight = 'bold';
+                    priceRangeElement.innerHTML = `${minPrice.toLocaleString()} - ${maxPrice.toLocaleString()} <span style="color: #f39c12;">⚠️ Precio fuera de rango</span>`;
+                } else {
+                    priceRangeElement.style.color = '#2ecc71';
+                    priceRangeElement.style.fontWeight = 'normal';
+                    priceRangeElement.innerHTML = `${minPrice.toLocaleString()} - ${maxPrice.toLocaleString()}`;
+                }
+                
+                // Mostrar información sobre el estado de activación
+                this.updateGridActivationStatus();
+            }
+            
+            updateGridActivationStatus() {
+                if (!this.isRunning || !this.currentPrice) return;
+                
+                const maxPrice = parseFloat(document.getElementById(`maxPrice${this.suffix}`).value) || 0;
+                const minPrice = parseFloat(document.getElementById(`minPrice${this.suffix}`).value) || 0;
+                
+                if (maxPrice <= 0 || minPrice <= 0) return;
+                
+                let statusMessage = '';
+                if (this.currentPrice < minPrice) {
+                    statusMessage = `⏳ Esperando que el precio baje hasta ${minPrice.toFixed(2)} USDT para activar la rejilla`;
+                } else if (this.currentPrice > maxPrice) {
+                    statusMessage = `⏳ Esperando que el precio suba hasta ${maxPrice.toFixed(2)} USDT para activar la rejilla`;
+                } else {
+                    statusMessage = `✅ Rejilla activa - Precio dentro del rango de trading`;
+                }
+                
+                // Buscar un elemento para mostrar el estado
+                const statusElement = document.getElementById(`gridStatus${this.suffix}`);
+                if (statusElement) {
+                    statusElement.innerHTML = statusMessage;
+                    statusElement.style.color = this.currentPrice >= minPrice && this.currentPrice <= maxPrice ? '#2ecc71' : '#f39c12';
+                }
+            }
+
+            updateConnectionStatus(connected) {
+                const statusElement = document.getElementById('connectionStatus');
+                if (statusElement) {
+                    if (connected) {
+                        statusElement.innerHTML = '🟢 Conectado';
+                        statusElement.style.color = '#2ecc71';
+                    } else {
+                        statusElement.innerHTML = '🔴 Error de Conexión';
+                        statusElement.style.color = '#e74c3c';
+                    }
+                }
+            }
+
+            initializeChart() {
+                const ctx = document.getElementById(`priceChart${this.suffix}`);
+                if (!ctx) return;
+                
+                this.priceChart = new Chart(ctx.getContext('2d'), {
+                    type: 'line',
+                    data: {
+                        labels: [],
+                        datasets: [{
+                            label: 'Precio',
+                            data: [],
+                            borderColor: '#3498db',
+                            backgroundColor: 'rgba(52, 152, 219, 0.1)',
+                            borderWidth: 3,
+                            fill: true,
+                            tension: 0.4
+                        }, {
+                            label: 'PnL Total',
+                            data: [],
+                            borderColor: '#2ecc71',
+                            backgroundColor: 'rgba(46, 204, 113, 0.1)',
+                            borderWidth: 2,
+                            fill: false,
+                            yAxisID: 'y1'
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                labels: {
+                                    color: '#ecf0f1'
+                                }
+                            }
+                        },
+                        scales: {
+                            x: {
+                                ticks: { color: '#bdc3c7' },
+                                grid: { color: 'rgba(255, 255, 255, 0.1)' }
+                            },
+                            y: {
+                                type: 'linear',
+                                display: true,
+                                position: 'left',
+                                ticks: { color: '#bdc3c7' },
+                                grid: { color: 'rgba(255, 255, 255, 0.1)' }
+                            },
+                            y1: {
+                                type: 'linear',
+                                display: true,
+                                position: 'right',
+                                ticks: { color: '#2ecc71' },
+                                grid: { drawOnChartArea: false }
+                            }
+                        }
+                    }
+                });
+            }
+
+            async startBot() {
+                if (this.isRunning) return;
+
+                try {
+                    // Obtener precio actual antes de validar
+                    await this.getCurrentPrice();
+                    
+                    // Verificar que el precio esté en el rango antes de continuar
+                    const maxPrice = parseFloat(document.getElementById(`maxPrice${this.suffix}`).value);
+                    const minPrice = parseFloat(document.getElementById(`minPrice${this.suffix}`).value);
+                    
+                    // Permitir iniciar el bot si el precio está en el rango o si se usará simulación histórica
+                    // La simulación histórica verificará si el precio pasa por el rango en algún momento
+                    if (this.currentPrice < minPrice || this.currentPrice > maxPrice) {
+                        console.log(`⚠️ Precio actual (${this.currentPrice.toFixed(2)} USDT) fuera del rango (${minPrice.toFixed(2)} - ${maxPrice.toFixed(2)} USDT). Verificando datos históricos...`);
+                    }
+                    
+                    this.validateInputs();
+                    this.showMessage('Cargando datos históricos...', 'success');
+                    
+                    await this.loadHistoricalData();
+                    
+                    this.isRunning = true;
+                    this.updateButtonStates();
+                    this.resetSimulation();
+                    this.initializeGridOrders();
+                    this.startHistoricalSimulation();
+                    this.startFundingFeeTimer();
+                    
+                    const symbol = document.getElementById(`symbol${this.suffix}`).value.replace('USDT', '');
+                    this.showMessage(
+                        `Bot iniciado - Modo ${this.mode.toUpperCase()} con ${this.leverage}x leverage | Asignación: ${this.cryptoPercentage}% ${symbol} + ${this.usdtPercentage}% USDT`, 
+                        'success'
+                    );
+                } catch (error) {
+                    this.showMessage('Error al iniciar bot: ' + error.message, 'error');
+                    this.isRunning = false;
+                    this.updateButtonStates();
+                }
+            }
+
+            validateInputs() {
+                const maxPrice = parseFloat(document.getElementById(`maxPrice${this.suffix}`).value);
+                const minPrice = parseFloat(document.getElementById(`minPrice${this.suffix}`).value);
+                const investment = parseFloat(document.getElementById(`investment${this.suffix}`).value);
+                const gridCount = parseInt(document.getElementById(`gridCount${this.suffix}`).value);
+                const currentPrice = this.currentPrice || parseFloat(document.getElementById(`currentPrice${this.suffix}`)?.textContent?.replace(' USDT', '').replace(/,/g, '')) || 0;
+
+                if (maxPrice <= minPrice) throw new Error('Precio superior debe ser mayor al inferior');
+                if (investment < 10) throw new Error('Margen mínimo: 10 USDT');
+                if (gridCount < 2) throw new Error('Mínimo 2 rejillas');
+                if (gridCount > 150) throw new Error('Máximo 150 rejillas');
+                
+                if (this.cryptoPercentage + this.usdtPercentage !== 100) {
+                    throw new Error('La suma de los porcentajes debe ser 100%');
+                }
+                if (this.cryptoPercentage < 0 || this.usdtPercentage < 0) {
+                    throw new Error('Los porcentajes no pueden ser negativos');
+                }
+                
+                // Validar que el precio actual se pueda obtener
+                if (currentPrice <= 0) {
+                    throw new Error('No se puede obtener el precio actual. Verifica la conexión.');
+                }
+                
+                // Permitir precios fuera del rango para simulación histórica
+                // La simulación verificará si el precio pasa por el rango en algún momento
+                if (currentPrice < minPrice || currentPrice > maxPrice) {
+                    console.log(`⚠️ Precio actual (${currentPrice.toFixed(2)} USDT) fuera del rango (${minPrice.toFixed(2)} - ${maxPrice.toFixed(2)} USDT). Continuando con simulación histórica...`);
+                }
+            }
+
+            resetSimulation() {
+                this.totalProfit = 0;
+                this.gridProfit = 0;
+                this.unrealizedPnl = 0;
+                this.completedTrades = 0;
+                this.priceHistory = [];
+                this.profits = [];
+                this.gridExecutions = [];
+                this.openPositions = [];
+                this.totalFundingFees = 0;
+                this.lastPrice = this.currentPrice || 0; // Inicializar con el precio actual
+                this.historicalIndex = 0;
+                this.gridOrders = [];
+                this.updateDisplay();
+                
+                if (this.priceChart) {
+                    this.priceChart.data.labels = [];
+                    this.priceChart.data.datasets[0].data = [];
+                    this.priceChart.data.datasets[1].data = [];
+                    this.priceChart.update();
+                }
+            }
+
+            async loadHistoricalData() {
+                const symbolElement = document.getElementById(`symbol${this.suffix}`);
+                const startDateElement = document.getElementById(`startDate${this.suffix}`);
+                const endDateElement = document.getElementById(`endDate${this.suffix}`);
+                
+                const symbol = symbolElement ? symbolElement.value : 'BTCUSDT';
+                const startDate = startDateElement ? startDateElement.value : '';
+                const endDate = endDateElement ? endDateElement.value : '';
+                
+                if (!startDate || !endDate) {
+                    throw new Error('Por favor selecciona fechas válidas');
+                }
+
+                const startTime = new Date(startDate).getTime();
+                const endTime = new Date(endDate).getTime();
+                
+                if (startTime >= endTime) {
+                    throw new Error('La fecha de inicio debe ser anterior a la fecha final');
+                }
+
+                this.selectedStartTime = startTime;
+                this.selectedEndTime = endTime;
+
+                // Selección de intervalo según rango
+                const rangeMs = endTime - startTime;
+                const oneDay = 24 * 60 * 60 * 1000;
+                let interval = '5m';
+                if (rangeMs > 10 * oneDay && rangeMs <= 30 * oneDay) interval = '15m';
+                else if (rangeMs > 30 * oneDay && rangeMs <= 180 * oneDay) interval = '1h';
+                else if (rangeMs > 180 * oneDay && rangeMs <= 720 * oneDay) interval = '4h';
+                else if (rangeMs > 720 * oneDay) interval = '1d';
+
+                try {
+                    const klines = await this.fetchKlinesPaginated(symbol, interval, startTime, endTime);
+                    this.historicalData = klines;
+                    this.historicalIndex = 0;
+                    if (this.historicalData.length === 0) {
+                        throw new Error('No se encontraron datos para el período seleccionado');
+                    }
+                    console.log(`Cargados ${this.historicalData.length} puntos (${interval})`);
+                } catch (error) {
+                    throw new Error(`Error al cargar datos históricos: ${error.message}`);
+                }
+            }
+
+            async fetchKlinesPaginated(symbol, interval, startTime, endTime) {
+                const all = [];
+                let from = startTime;
+                const limit = 1000;
+                while (from < endTime) {
+                    const url = `https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=${interval}&startTime=${from}&endTime=${endTime}&limit=${limit}`;
+                    const res = await fetch(url);
+                    if (!res.ok) throw new Error(`API ${res.status}`);
+                    const batch = await res.json();
+                    if (!Array.isArray(batch) || batch.length === 0) break;
+                    all.push(...batch);
+                    const lastOpenTime = batch[batch.length - 1][0];
+                    from = lastOpenTime + 1;
+                    if (batch.length < limit) break;
+                }
+                return all;
+            }
+            
+            checkHistoricalPriceRange() {
+                const maxPrice = parseFloat(document.getElementById(`maxPrice${this.suffix}`).value);
+                const minPrice = parseFloat(document.getElementById(`minPrice${this.suffix}`).value);
+                const entryPrice = parseFloat(document.getElementById(`entryPrice${this.suffix}`).value);
+                
+                if (!this.historicalData || this.historicalData.length === 0) return;
+                
+                let priceInRange = false;
+                let minHistoricalPrice = Infinity;
+                let maxHistoricalPrice = -Infinity;
+                
+                // Verificar si algún precio histórico está en el rango
+                this.historicalData.forEach(candle => {
+                    const price = parseFloat(candle[4]); // Precio de cierre
+                    minHistoricalPrice = Math.min(minHistoricalPrice, price);
+                    maxHistoricalPrice = Math.max(maxHistoricalPrice, price);
+                    
+                    if (price >= minPrice && price <= maxPrice) {
+                        priceInRange = true;
+                    }
+                });
+                
+                if (priceInRange) {
+                    console.log(`✅ El precio histórico pasa por el rango configurado (${minPrice.toFixed(2)} - ${maxPrice.toFixed(2)} USDT)`);
+                    console.log(`📊 Rango histórico: ${minHistoricalPrice.toFixed(2)} - ${maxHistoricalPrice.toFixed(2)} USDT`);
+                    this.showMessage(`✅ Datos históricos válidos. El precio pasa por el rango configurado en algún momento del período seleccionado.`, 'success');
+                } else {
+                    console.log(`⚠️ El precio histórico NO pasa por el rango configurado (${minPrice.toFixed(2)} - ${maxPrice.toFixed(2)} USDT)`);
+                    console.log(`📊 Rango histórico: ${minHistoricalPrice.toFixed(2)} - ${maxHistoricalPrice.toFixed(2)} USDT`);
+                    this.showMessage(`⚠️ Advertencia: El precio histórico no pasa por el rango configurado. Considera ajustar las fechas o los precios.`, 'warning');
+                }
+            }
+
+            initializeGridOrders() {
+                this.gridOrders = [];
+                const maxPrice = parseFloat(document.getElementById(`maxPrice${this.suffix}`).value);
+                const minPrice = parseFloat(document.getElementById(`minPrice${this.suffix}`).value);
+                const gridCount = parseInt(document.getElementById(`gridCount${this.suffix}`).value);
+                const margin = parseFloat(document.getElementById(`investment${this.suffix}`).value);
+                const entryPrice = parseFloat(document.getElementById(`entryPrice${this.suffix}`).value) || this.currentPrice;
+                
+                const priceRange = maxPrice - minPrice;
+                const gridInterval = priceRange / (gridCount - 1);
+                const marginPerGrid = margin / gridCount; // Margen real por grid
+                const totalCapitalWithLeverage = margin * this.leverage;
+                const capitalPerGrid = totalCapitalWithLeverage / gridCount; // Capital con apalancamiento por grid
+                
+                for (let i = 0; i < gridCount; i++) {
+                    const price = minPrice + (i * gridInterval);
+                    const positionSize = capitalPerGrid / price;
+                    
+                    // Configurar órdenes según el modo seleccionado
+                    let buyOrderActive = false;
+                    let sellOrderActive = false;
+                    
+                    if (this.mode === 'neutral') {
+                        // Modo neutral: usar el precio de entrada configurado por el usuario
+                        buyOrderActive = price < entryPrice;
+                        sellOrderActive = price > entryPrice;
+                    } else if (this.mode === 'long') {
+                        // Modo long: comprar en todos los niveles por debajo del precio de entrada
+                        buyOrderActive = price <= entryPrice;
+                        sellOrderActive = false; // Solo se activa después de comprar
+                    } else if (this.mode === 'short') {
+                        // Modo short: vender en todos los niveles por encima del precio de entrada
+                        buyOrderActive = false; // Solo se activa después de vender
+                        sellOrderActive = price >= entryPrice;
+                    }
+                    
+                    this.gridOrders.push({
+                        id: i,
+                        price: price,
+                        positionSize: positionSize,
+                        margin: marginPerGrid,
+                        buyOrderActive: buyOrderActive,
+                        sellOrderActive: sellOrderActive,
+                        position: null,
+                        availableCrypto: this.cryptoAllocation * this.leverage / gridCount / price,
+                        availableUsdt: this.usdtAllocation / gridCount,
+                        mode: this.mode,
+                        entryPrice: entryPrice
+                    });
+                }
+                
+                console.log(`Rejilla inicializada en modo ${this.mode.toUpperCase()} con precio de entrada ${entryPrice.toFixed(2)} USDT: ${this.gridOrders.filter(o => o.buyOrderActive).length} órdenes de compra, ${this.gridOrders.filter(o => o.sellOrderActive).length} órdenes de venta`);
+            }
+
+            startHistoricalSimulation() {
+                this.updateInterval = setInterval(() => {
+                    if (!this.isRunning) return;
+
+                    try {
+                        this.simulateGridTrading();
+                        
+                        if (this.historicalIndex % 3 === 0) {
+                            this.updateChart();
+                            this.updateDisplay();
+                        }
+                    } catch (error) {
+                        console.error('Simulation error:', error);
+                        this.showMessage('Error en simulación: ' + error.message, 'error');
+                    }
+                }, this.simulationSpeed);
+            }
+
+            startFundingFeeTimer() {
+                this.fundingFeeInterval = setInterval(() => {
+                    this.calculateFundingFee();
+                }, 30000);
+            }
+
+            calculateFundingFee() {
+                if (this.openPositions.length === 0) return;
+
+                const fundingRate = (Math.random() - 0.5) * 0.00002;
+                
+                this.openPositions.forEach(position => {
+                    const fundingFee = position.size * this.currentPrice * Math.abs(fundingRate);
+                    this.totalFundingFees += fundingFee * (fundingRate > 0 ? -1 : 1);
+                });
+
+                const fundingElement = document.getElementById(`totalFundingFees${this.suffix}`);
+                if (fundingElement) {
+                    const sign = this.totalFundingFees >= 0 ? '+' : '';
+                    fundingElement.textContent = `${sign}${this.totalFundingFees.toFixed(2)} USDT`;
+                }
+            }
+
+            async simulateGridTrading() {
+                if (this.historicalData && this.historicalIndex < this.historicalData.length) {
+                    const currentData = this.historicalData[this.historicalIndex];
+                    const simulatedPrice = parseFloat(currentData[4]);
+                    
+                    this.priceHistory.push({
+                        time: new Date(currentData[6]),
+                        price: simulatedPrice
+                    });
+
+                    this.processGridOrders(simulatedPrice);
+                    this.calculateUnrealizedPnL(simulatedPrice);
+                    
+                    this.totalProfit = this.gridProfit + this.unrealizedPnl + this.totalFundingFees;
+                    this.profits.push(this.totalProfit);
+                    
+                    this.historicalIndex++;
+                    
+                    const currentPriceElement = document.getElementById(`currentPrice${this.suffix}`);
+                    if (currentPriceElement) {
+                        currentPriceElement.textContent = 
+                            `${simulatedPrice.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})} USDT`;
+                    }
+                } else {
+                    try {
+                        const symbolElement = document.getElementById(`symbol${this.suffix}`);
+                        const symbol = symbolElement ? symbolElement.value : 'BTCUSDT';
+                        const now = Date.now();
+                        if (this.selectedEndTime && (now - this.selectedEndTime) < (24 * 60 * 60 * 1000)) {
+                            const resp = await fetch(`https://api.binance.com/api/v3/ticker/price?symbol=${symbol}`);
+                            const data = await resp.json();
+                            const livePrice = parseFloat(data.price);
+                            if (!isNaN(livePrice)) {
+                                this.processGridOrders(livePrice);
+                                const entryPrice = parseFloat(document.getElementById(`entryPrice${this.suffix}`).value);
+                                const totalInvestment = parseFloat(document.getElementById(`investment${this.suffix}`).value);
+                                const priceChange = (livePrice - entryPrice) / entryPrice;
+                                const positionSizePerGrid = parseFloat(document.getElementById(`positionPerGrid${this.suffix}`)?.textContent) || 0;
+                                // PnL no realizado ya se mantiene; solo actualizamos último precio
+                                this.priceHistory.push({ time: new Date(now), price: livePrice });
+                                const currentPriceElement = document.getElementById(`currentPrice${this.suffix}`);
+                                if (currentPriceElement) {
+                                    currentPriceElement.textContent = `${livePrice.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})} USDT`;
+                                }
+                                this.updateChart();
+                                this.updateDisplay();
+                            }
+                        }
+                    } catch (e) {}
+                    this.stopBot();
+                    this.showMessage('Simulación completada con datos históricos', 'success');
+                }
+            }
+
+            processGridOrders(currentPrice) {
+                // Solo procesar órdenes si el bot está ejecutándose
+                if (!this.isRunning) return;
+                
+                this.gridOrders.forEach(order => {
+                    // Para órdenes de compra: solo ejecutar si el precio BAJA hasta el nivel (toca desde arriba)
+                    if (order.buyOrderActive && !order.position && this.lastPrice > order.price && currentPrice <= order.price) {
+                        if (this.canExecuteBuyOrder(order, currentPrice)) {
+                            this.executeBuyOrder(order, currentPrice);
+                        }
+                    }
+                    
+                    // Para órdenes de venta: solo ejecutar si el precio SUBE hasta el nivel (toca desde abajo)
+                    if (order.sellOrderActive && order.position && this.lastPrice < order.price && currentPrice >= order.price) {
+                        this.executeSellOrder(order, currentPrice);
+                    }
+                    
+                    // Lógica específica para modo neutral: alternar entre long y short
+                    if (this.mode === 'neutral' && !order.position) {
+                        if (order.buyOrderActive && this.lastPrice > order.price && currentPrice <= order.price) {
+                            // Precio bajó hasta el nivel de compra
+                            if (this.canExecuteBuyOrder(order, currentPrice)) {
+                                this.executeBuyOrder(order, currentPrice);
+                            }
+                        } else if (order.sellOrderActive && this.lastPrice < order.price && currentPrice >= order.price) {
+                            // Precio subió hasta el nivel de venta
+                            if (this.canExecuteSellOrder(order, currentPrice)) {
+                                this.executeSellOrder(order, currentPrice);
+                            }
+                        }
+                    }
+                });
+                
+                // Actualizar el último precio para la próxima comparación
+                this.lastPrice = currentPrice;
+            }
+
+            canExecuteBuyOrder(order, currentPrice) {
+                // Verificar que hay fondos disponibles
+                if (!(order.availableUsdt > 0 || order.availableCrypto > 0)) {
+                    return false;
+                }
+                
+                // Verificar que el precio realmente tocó el nivel desde arriba
+                if (this.lastPrice <= order.price) {
+                    return false;
+                }
+                
+                // Verificar que el precio actual está en o por debajo del nivel
+                if (currentPrice > order.price) {
+                    return false;
+                }
+                
+                return true;
+            }
+            
+            canExecuteSellOrder(order, currentPrice) {
+                // Verificar que hay una posición abierta
+                if (!order.position) {
+                    return false;
+                }
+                
+                // Verificar que el precio realmente tocó el nivel desde abajo
+                if (this.lastPrice >= order.price) {
+                    return false;
+                }
+                
+                // Verificar que el precio actual está en o por encima del nivel
+                if (currentPrice < order.price) {
+                    return false;
+                }
+                
+                return true;
+            }
+
+            executeBuyOrder(order, currentPrice) {
+                // Verificación adicional de seguridad
+                if (!this.canExecuteBuyOrder(order, currentPrice)) {
+                    return;
+                }
+                
+                // Determinar el tipo de posición según el modo
+                let positionType = 'long';
+                if (this.mode === 'short') {
+                    positionType = 'short';
+                } else if (this.mode === 'neutral') {
+                    // En modo neutral, alternar entre long y short según el movimiento del precio
+                    positionType = this.lastPrice > currentPrice ? 'long' : 'short';
+                }
+                
+                const position = {
+                    id: order.id,
+                    type: positionType,
+                    entryPrice: currentPrice,
+                    size: order.positionSize,
+                    margin: order.margin,
+                    timestamp: Date.now()
+                };
+                
+                order.position = position;
+                this.openPositions.push(position);
+                
+                // Configurar la siguiente orden según el modo
+                if (this.mode === 'neutral') {
+                    // En modo neutral, después de comprar, activar la venta
+                    order.sellOrderActive = true;
+                    order.buyOrderActive = false;
+                } else if (this.mode === 'long') {
+                    // En modo long, después de comprar, activar la venta
+                    order.sellOrderActive = true;
+                    order.buyOrderActive = false;
+                } else if (this.mode === 'short') {
+                    // En modo short, después de vender, activar la compra
+                    order.buyOrderActive = true;
+                    order.sellOrderActive = false;
+                }
+                
+                this.gridExecutions.push({
+                    type: positionType === 'long' ? 'OPEN_LONG' : 'OPEN_SHORT',
+                    price: currentPrice,
+                    size: position.size,
+                    profit: 0,
+                    time: new Date()
+                });
+                
+                // Log de la ejecución para debugging
+                console.log(`🟢 ${positionType.toUpperCase()} ejecutado en nivel ${order.id}: ${currentPrice} USDT (precio anterior: ${this.lastPrice})`);
+            }
+
+            executeSellOrder(order, currentPrice) {
+                const position = order.position;
+                if (!position) return;
+                
+                // Verificar que el precio realmente tocó el nivel desde abajo
+                if (this.lastPrice >= order.price) {
+                    return;
+                }
+                
+                // Verificar que el precio actual está en o por encima del nivel
+                if (currentPrice < order.price) {
+                    return;
+                }
+                
+                let profit = this.calculateTradeProfit(position, currentPrice);
+                
+                // Acumular el profit en gridProfit (solo ganancias realizadas)
+                // Asegurar que siempre se sume el profit, nunca se reste
+                this.gridProfit += Math.abs(profit);
+                this.completedTrades++;
+                
+                // Log detallado del profit acumulado
+                console.log(`💰 Profit acumulado: ${profit.toFixed(2)} USDT | Total Grid Profit: ${this.gridProfit.toFixed(2)} USDT`);
+                
+                const posIndex = this.openPositions.indexOf(position);
+                if (posIndex > -1) {
+                    this.openPositions.splice(posIndex, 1);
+                }
+                
+                order.position = null;
+                
+                // Configurar la siguiente orden según el modo
+                if (this.mode === 'neutral') {
+                    // En modo neutral, después de vender, activar la compra
+                    order.buyOrderActive = true;
+                    order.sellOrderActive = false;
+                } else if (this.mode === 'long') {
+                    // En modo long, después de vender, activar la compra
+                    order.buyOrderActive = true;
+                    order.sellOrderActive = false;
+                } else if (this.mode === 'short') {
+                    // En modo short, después de comprar, activar la venta
+                    order.sellOrderActive = true;
+                    order.buyOrderActive = false;
+                }
+                
+                this.gridExecutions.push({
+                    type: position.type === 'long' ? 'CLOSE_LONG' : 'CLOSE_SHORT',
+                    price: currentPrice,
+                    size: position.size,
+                    profit: Math.abs(profit), // Siempre guardar como positivo
+                    time: new Date()
+                });
+                
+                // Log de la ejecución para debugging
+                console.log(`🔴 ${position.type.toUpperCase()} cerrado en nivel ${order.id}: ${currentPrice} USDT (precio anterior: ${this.lastPrice}) - Profit: ${Math.abs(profit).toFixed(2)} USDT`);
+            }
+
+            calculateTradeProfit(position, exitPrice) {
+                let pnl = 0;
+                
+                if (position.type === 'long') {
+                    pnl = (exitPrice - position.entryPrice) * position.size;
+                } else if (position.type === 'short') {
+                    pnl = (position.entryPrice - exitPrice) * position.size;
+                }
+                
+                // Calcular fees de trading (0.1% por operación)
+                const tradingFees = (position.entryPrice * position.size + exitPrice * position.size) * 0.001;
+                
+                // Calcular profit neto
+                const netProfit = pnl - tradingFees;
+                
+                // Log detallado para debugging
+                console.log(`📊 Cálculo de profit para ${position.type.toUpperCase()}:`);
+                console.log(`   Precio entrada: ${position.entryPrice.toFixed(2)} USDT`);
+                console.log(`   Precio salida: ${exitPrice.toFixed(2)} USDT`);
+                console.log(`   Tamaño: ${position.size.toFixed(6)} BTC`);
+                console.log(`   PnL bruto: ${pnl.toFixed(2)} USDT`);
+                console.log(`   Fees: ${tradingFees.toFixed(2)} USDT`);
+                console.log(`   Profit neto: ${netProfit.toFixed(2)} USDT`);
+                
+                // Asegurar que siempre devolvemos un valor positivo para el grid profit
+                // Si es negativo, significa que fue una pérdida, pero para el grid profit solo contamos ganancias
+                return Math.max(0, netProfit);
+            }
+
+            calculateUnrealizedPnL(currentPrice) {
+                this.unrealizedPnl = 0;
+                
+                this.openPositions.forEach(position => {
+                    if (position.type === 'long') {
+                        this.unrealizedPnl += (currentPrice - position.entryPrice) * position.size;
+                    } else {
+                        this.unrealizedPnl += (position.entryPrice - currentPrice) * position.size;
+                    }
+                });
+            }
+
+            updateChart() {
+                if (!this.priceChart || this.priceHistory.length === 0) return;
+
+                const labels = this.priceHistory.map(item => 
+                    item.time.toLocaleTimeString('es-ES', { 
+                        hour: '2-digit', 
+                        minute: '2-digit', 
+                        second: '2-digit' 
+                    })
+                );
+                
+                const priceData = this.priceHistory.map(item => item.price);
+                const profitData = this.profits.map(profit => profit);
+
+                this.priceChart.data.labels = labels;
+                this.priceChart.data.datasets[0].data = priceData;
+                this.priceChart.data.datasets[1].data = profitData;
+                this.priceChart.update('none');
+            }
+
+            updateDisplay() {
+                const profitElement = document.getElementById(`totalProfit${this.suffix}`);
+                const percentageElement = document.getElementById(`profitPercentage${this.suffix}`);
+                const investment = parseFloat(document.getElementById(`investment${this.suffix}`).value);
+                
+                // Verificar que el gridProfit sea lógico
+                this.validateGridProfit();
+                
+                const profitPercentage = (this.totalProfit / investment) * 100;
+                const sign = this.totalProfit >= 0 ? '+' : '';
+                
+                if (profitElement) profitElement.textContent = `${sign}${this.totalProfit.toFixed(2)} USDT`;
+                if (percentageElement) percentageElement.textContent = `(${sign}${profitPercentage.toFixed(2)}%)`;
+                
+                const profitDisplay = document.querySelector('#futures-grid .profit-display');
+                if (profitDisplay) {
+                    if (this.totalProfit >= 0) {
+                        profitDisplay.style.background = 'linear-gradient(135deg, #27ae60, #2ecc71)';
+                    } else {
+                        profitDisplay.style.background = 'linear-gradient(135deg, #e74c3c, #c0392b)';
+                    }
+                }
+
+                const elements = {
+                    [`gridProfit${this.suffix}`]: `+${Math.abs(this.gridProfit).toFixed(2)} USDT`,
+                    [`unrealizedPnl${this.suffix}`]: `${this.unrealizedPnl >= 0 ? '+' : ''}${this.unrealizedPnl.toFixed(2)} USDT`,
+                    [`completedTrades${this.suffix}`]: this.completedTrades,
+                    [`totalExecutions${this.suffix}`]: this.gridExecutions.length
+                };
+
+                Object.entries(elements).forEach(([id, value]) => {
+                    const element = document.getElementById(id);
+                    if (element) element.textContent = value;
+                });
+
+                this.updateExecutionsList();
+            }
+
+            validateGridProfit() {
+                // Asegurar que el gridProfit nunca sea negativo si hay trades completados
+                if (this.completedTrades > 0 && this.gridProfit < 0) {
+                    console.warn('⚠️ Grid Profit negativo detectado, verificando cálculo...');
+                    // Recalcular gridProfit sumando solo las ganancias realizadas
+                    let recalculatedProfit = 0;
+                    this.gridExecutions.forEach(exec => {
+                        if (exec.profit !== 0) { // Solo trades cerrados tienen profit
+                            recalculatedProfit += Math.abs(exec.profit);
+                        }
+                    });
+                    
+                    if (recalculatedProfit !== this.gridProfit) {
+                        console.log(`🔄 Grid Profit corregido: ${this.gridProfit.toFixed(2)} → ${recalculatedProfit.toFixed(2)} USDT`);
+                        this.gridProfit = recalculatedProfit;
+                    }
+                }
+                
+                // Asegurar que gridProfit nunca sea negativo
+                if (this.gridProfit < 0) {
+                    this.gridProfit = Math.abs(this.gridProfit);
+                }
+                
+                // Verificar que el totalProfit sea consistente
+                const expectedTotal = this.gridProfit + this.unrealizedPnl + this.totalFundingFees;
+                if (Math.abs(this.totalProfit - expectedTotal) > 0.01) {
+                    console.warn('⚠️ Inconsistencia en totalProfit detectada, corrigiendo...');
+                    this.totalProfit = expectedTotal;
+                }
+            }
+
+            updateExecutionsList() {
+                const executionsList = document.getElementById(`executionsList${this.suffix}`);
+                const executionsCard = document.getElementById(`executionsCard${this.suffix}`);
+                const progressFill = document.getElementById(`progressFill${this.suffix}`);
+                
+                if (progressFill && this.historicalData && this.historicalData.length > 0) {
+                    const progress = (this.historicalIndex / this.historicalData.length) * 100;
+                    progressFill.style.width = `${progress}%`;
+                }
+                
+                if (executionsList && executionsCard) {
+                    if (this.gridExecutions.length > 0) {
+                        executionsCard.style.display = 'block';
+                        
+                        const lastExecutions = this.gridExecutions.slice(-5).reverse();
+                        executionsList.innerHTML = lastExecutions.map(exec => `
+                            <div class="execution-item">
+                                <div>
+                                    <span class="execution-type ${exec.type.includes('LONG') ? 'execution-long' : 'execution-short'}">${exec.type}</span>
+                                    <span>${exec.size.toFixed(6)} BTC @ ${exec.price.toFixed(0)}</span>
+                                </div>
+                                <div style="color: ${exec.profit > 0 ? '#2ecc71' : '#bdc3c7'}; font-weight: bold;">
+                                    ${exec.profit !== 0 ? '+' + Math.abs(exec.profit).toFixed(2) + ' USDT' : '--'}
+                                </div>
+                            </div>
+                        `).join('');
+                    } else if (this.isRunning) {
+                        executionsCard.style.display = 'block';
+                        executionsList.innerHTML = '<div style="text-align: center; color: #bdc3c7; padding: 20px;">Esperando ejecuciones...</div>';
+                    } else {
+                        executionsCard.style.display = 'none';
+                    }
+                }
+            }
+
+            stopBot() {
+                this.isRunning = false;
+                this.updateButtonStates();
+                
+                if (this.updateInterval) {
+                    clearInterval(this.updateInterval);
+                    this.updateInterval = null;
+                }
+                
+                if (this.fundingFeeInterval) {
+                    clearInterval(this.fundingFeeInterval);
+                    this.fundingFeeInterval = null;
+                }
+                
+                const totalExecutions = this.gridExecutions.length;
+                const finalProfit = this.totalProfit;
+                
+                this.showMessage(
+                    `Bot detenido - ${totalExecutions} ejecuciones, PnL: ${finalProfit >= 0 ? '+' : ''}${finalProfit.toFixed(2)} USDT`, 
+                    finalProfit >= 0 ? 'success' : 'error'
+                );
+            }
+
+            updateButtonStates() {
+                const startBtn = document.getElementById(`startBot${this.suffix}`);
+                const stopBtn = document.getElementById(`stopBot${this.suffix}`);
+                
+                if (!startBtn || !stopBtn) return;
+                
+                const startIndicator = startBtn.querySelector('.status-indicator');
+                const stopIndicator = stopBtn.querySelector('.status-indicator');
+
+                if (this.isRunning) {
+                    startBtn.disabled = true;
+                    stopBtn.disabled = false;
+                    if (startIndicator) startIndicator.className = 'status-indicator status-active';
+                    if (stopIndicator) stopIndicator.className = 'status-indicator status-inactive';
+                    startBtn.innerHTML = '<span class="status-indicator status-active"></span> Bot Activo';
+                } else {
+                    startBtn.disabled = false;
+                    stopBtn.disabled = true;
+                    if (startIndicator) startIndicator.className = 'status-indicator status-inactive';
+                    if (stopIndicator) stopIndicator.className = 'status-indicator status-inactive';
+                    startBtn.innerHTML = '<span class="status-indicator status-inactive"></span> Iniciar Bot';
+                }
+            }
+
+            showMessage(message, type) {
+                const messageArea = document.getElementById(`messageArea${this.suffix}`);
+                if (messageArea) {
+                    const messageDiv = document.createElement('div');
+                    messageDiv.className = type;
+                    messageDiv.textContent = message;
+                    
+                    messageArea.innerHTML = '';
+                    messageArea.appendChild(messageDiv);
+                    
+                    setTimeout(() => {
+                        if (messageDiv.parentNode) {
+                            messageDiv.remove();
+                        }
+                    }, 5000);
+                }
+            }
+        }
+
+        // Manual Spot Trading Class
+        class ManualSpotTrader {
+            constructor() {
+                this.currentPrice = 0;
+                this.usdtBalance = 0;
+                this.cryptoBalance = 0;
+                this.totalValue = 0;
+                this.totalPnl = 0;
+                this.totalTrades = 0;
+                this.capitalNet = 0;
+                this.activePositions = [];
+                this.tradeHistory = [];
+                this.chart = null;
+                this.priceHistory = [];
+                this.orderType = 'buy';
+                this.orderMode = 'limit';
+                this.symbol = 'BTCUSDT';
+                
+                this.init();
+            }
+
+            init() {
+                this.loadData(); // Load saved data first
+                this.setupEventListeners();
+                this.initializeChart();
+                this.getCurrentPrice();
+                this.updateDisplay();
+                this.startPriceUpdates();
+                this.setupAutoSave(); // Setup auto-save
+            }
+
+            startPriceUpdates() {
+                // Update price every 3 seconds
+                setInterval(() => {
+                    this.getCurrentPrice();
+                    this.checkStopLossTakeProfit();
+                }, 3000);
+            }
+
+            setupEventListeners() {
+                // Order type selector (Buy/Sell)
+                document.querySelectorAll('#manual-spot .order-type-btn[data-type]').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        document.querySelectorAll('#manual-spot .order-type-btn[data-type]').forEach(b => {
+                            b.classList.remove('active');
+                        });
+                        btn.classList.add('active');
+                        this.orderType = btn.dataset.type;
+                        this.updateOrderButtons();
+                    });
+                });
+
+                // Order mode selector (Market/Limit)
+                document.querySelectorAll('#manual-spot .order-type-btn[data-order]').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        document.querySelectorAll('#manual-spot .order-type-btn[data-order]').forEach(b => {
+                            b.classList.remove('active');
+                        });
+                        btn.classList.add('active');
+                        this.orderMode = btn.dataset.order;
+                        this.updateOrderForm();
+                    });
+                });
+
+                // Symbol change
+                document.getElementById('symbol-manual-spot').addEventListener('change', () => {
+                    this.symbol = document.getElementById('symbol-manual-spot').value;
+                    this.getCurrentPrice();
+                    this.updateSymbolDisplay();
+                });
+
+                // Price/Quantity changes
+                document.getElementById('orderPrice-manual-spot').addEventListener('input', () => {
+                    this.calculateTotal();
+                });
+                
+                document.getElementById('orderQuantity-manual-spot').addEventListener('input', () => {
+                    this.calculateTotal();
+                });
+
+                // Execute buttons
+                document.getElementById('executeBuy-manual-spot').addEventListener('click', () => {
+                    this.executeTrade('buy');
+                });
+                
+                document.getElementById('executeSell-manual-spot').addEventListener('click', () => {
+                    this.executeTrade('sell');
+                });
+
+                // Balance editor button
+                document.getElementById('editBalanceSpot').addEventListener('click', () => {
+                    this.editBalance();
+                });
+
+                const addCapitalBtn = document.getElementById('addCapitalSpot');
+                if (addCapitalBtn) {
+                    addCapitalBtn.addEventListener('click', () => {
+                        this.updateCapital(true);
+                    });
+                }
+
+                const removeCapitalBtn = document.getElementById('removeCapitalSpot');
+                if (removeCapitalBtn) {
+                    removeCapitalBtn.addEventListener('click', () => {
+                        this.updateCapital(false);
+                    });
+                }
+
+                // Advanced order buttons
+                document.querySelectorAll('#manual-spot .advanced-order-btn').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        // Remove active class from all buttons
+                        document.querySelectorAll('#manual-spot .advanced-order-btn').forEach(b => b.classList.remove('active'));
+                        
+                        // Add active class to clicked button
+                        e.target.classList.add('active');
+                        
+                        // Show form for selected order type
+                        const orderType = e.target.dataset.type;
+                        this.showAdvancedOrderForm(orderType);
+                    });
+                });
+            }
+
+            async getCurrentPrice() {
+                try {
+                    const response = await fetch(`https://api.binance.com/api/v3/ticker/price?symbol=${this.symbol}`);
+                    const data = await response.json();
+                    this.currentPrice = parseFloat(data.price);
+                    
+                    // Update connection status
+                    this.updateConnectionStatus(true);
+                    
+                    // Update current price display
+                    const priceDisplay = document.getElementById('currentPriceDisplay-manual-spot');
+                    if (priceDisplay) {
+                        priceDisplay.textContent = this.currentPrice.toLocaleString();
+                    }
+                    
+                    // Update price in form
+                    if (this.orderMode === 'market') {
+                        document.getElementById('orderPrice-manual-spot').value = this.currentPrice;
+                    }
+                    
+                    this.calculateTotal();
+                    this.updatePositionValues();
+                    this.updateDisplay(); // Update display when price changes
+                    
+                } catch (error) {
+                    this.updateConnectionStatus(false);
+                    this.showMessage('Error al obtener precio: ' + error.message, 'error');
+                }
+            }
+
+            updateConnectionStatus(connected) {
+                const statusElement = document.getElementById('connectionStatus');
+                if (statusElement) {
+                    if (connected) {
+                        statusElement.innerHTML = '🟢 Conectado';
+                        statusElement.style.color = '#2ecc71';
+                    } else {
+                        statusElement.innerHTML = '🔴 Error de Conexión';
+                        statusElement.style.color = '#e74c3c';
+                    }
+                }
+            }
+
+            calculateTotal() {
+                const price = parseFloat(document.getElementById('orderPrice-manual-spot').value) || 0;
+                const quantity = parseFloat(document.getElementById('orderQuantity-manual-spot').value) || 0;
+                const total = price * quantity;
+                
+                document.getElementById('orderTotal-manual-spot').value = total.toFixed(2);
+            }
+
+            updateSymbolDisplay() {
+                const cryptoSymbol = this.symbol.replace('USDT', '');
+                document.getElementById('buySymbol-manual-spot').textContent = cryptoSymbol;
+                document.getElementById('sellSymbol-manual-spot').textContent = cryptoSymbol;
+                this.updateDisplay();
+            }
+
+            updateOrderButtons() {
+                const buyBtn = document.getElementById('executeBuy-manual-spot');
+                const sellBtn = document.getElementById('executeSell-manual-spot');
+                
+                if (this.orderType === 'buy') {
+                    buyBtn.disabled = false;
+                    sellBtn.disabled = true;
+                } else {
+                    buyBtn.disabled = true;
+                    sellBtn.disabled = false;
+                }
+            }
+
+            updateOrderForm() {
+                const priceInput = document.getElementById('orderPrice-manual-spot');
+                if (this.orderMode === 'market') {
+                    priceInput.value = this.currentPrice;
+                    priceInput.disabled = true;
+                } else {
+                    priceInput.disabled = false;
+                }
+            }
+
+            executeTrade(type) {
+                const price = parseFloat(document.getElementById('orderPrice-manual-spot').value) || 0;
+                const quantity = parseFloat(document.getElementById('orderQuantity-manual-spot').value) || 0;
+                const total = price * quantity;
+                const fee = total * 0.001; // 0.1% fee
+                const stopLoss = parseFloat(document.getElementById('stopLoss-manual-spot').value) || 0;
+                const takeProfit = parseFloat(document.getElementById('takeProfit-manual-spot').value) || 0;
+
+                if (price <= 0 || quantity <= 0) {
+                    this.showMessage('Precio y cantidad deben ser mayores a 0', 'error');
+                    return;
+                }
+
+                if (type === 'buy') {
+                    if (this.usdtBalance < total + fee) {
+                        this.showMessage('Balance insuficiente para la compra', 'error');
+                        return;
+                    }
+                    
+                    // Execute buy order
+                    this.usdtBalance -= (total + fee);
+                    this.cryptoBalance += quantity;
+                    
+                    // Create position with stop loss and take profit
+                    const position = {
+                        id: Date.now(),
+                        type: 'long',
+                        symbol: this.symbol,
+                        entryPrice: price,
+                        quantity: quantity,
+                        value: total,
+                        fee: fee,
+                        stopLoss: stopLoss > 0 ? price * (1 - stopLoss / 100) : null,
+                        takeProfit: takeProfit > 0 ? price * (1 + takeProfit / 100) : null,
+                        timestamp: new Date()
+                    };
+                    
+                    this.activePositions.push(position);
+                    this.showMessage(`Compra ejecutada: ${quantity} ${this.symbol.replace('USDT', '')} a $${price}`, 'success');
+                    
+                } else if (type === 'sell') {
+                    if (this.cryptoBalance < quantity) {
+                        this.showMessage('Balance insuficiente para la venta', 'error');
+                        return;
+                    }
+                    
+                    // Execute sell order
+                    this.cryptoBalance -= quantity;
+                    this.usdtBalance += (total - fee);
+                    
+                    // Remove from positions or reduce quantity
+                    this.closePosition(quantity, price);
+                    this.showMessage(`Venta ejecutada: ${quantity} ${this.symbol.replace('USDT', '')} a $${price}`, 'success');
+                }
+
+                this.totalTrades++;
+                this.updateDisplay();
+                this.checkStopLossTakeProfit();
+                this.saveData(); // Save after trade execution
+            }
+
+            closePosition(quantity, price) {
+                // Find and close positions
+                let remainingQuantity = quantity;
+                const cryptoSymbol = this.symbol.replace('USDT', '');
+                
+                for (let i = this.activePositions.length - 1; i >= 0 && remainingQuantity > 0; i--) {
+                    const position = this.activePositions[i];
+                    if (position.symbol === this.symbol) {
+                        const closeQuantity = Math.min(remainingQuantity, position.quantity);
+                        const pnl = (price - position.entryPrice) * closeQuantity - position.fee * (closeQuantity / position.quantity);
+                        
+                        this.totalPnl += pnl;
+                        position.quantity -= closeQuantity;
+                        remainingQuantity -= closeQuantity;
+                        
+                        if (position.quantity <= 0) {
+                            this.activePositions.splice(i, 1);
+                        }
+                        
+                        this.tradeHistory.push({
+                            type: 'close',
+                            symbol: cryptoSymbol,
+                            quantity: closeQuantity,
+                            entryPrice: position.entryPrice,
+                            exitPrice: price,
+                            pnl: pnl,
+                            timestamp: new Date()
+                        });
+                    }
+                }
+            }
+
+            checkStopLossTakeProfit() {
+                // Check if any positions hit stop loss or take profit
+                // Use a copy of the array to avoid issues with concurrent modification
+                const positionsToCheck = [...this.activePositions];
+                
+                positionsToCheck.forEach((position, index) => {
+                    if (position.stopLoss && this.currentPrice <= position.stopLoss) {
+                        // Execute stop loss
+                        this.closePositionById(position.id, 'stop-loss');
+                    }
+                    
+                    if (position.takeProfit && this.currentPrice >= position.takeProfit) {
+                        // Execute take profit
+                        this.closePositionById(position.id, 'take-profit');
+                    }
+                });
+
+                // Check advanced orders
+                this.checkAdvancedOrders();
+            }
+
+            checkAdvancedOrders() {
+                if (!this.advancedOrders) return;
+
+                this.advancedOrders.forEach(order => {
+                    if (order.status !== 'active') return;
+
+                    switch (order.type) {
+                        case 'trailing-stop':
+                            this.processTrailingStop(order);
+                            break;
+                        case 'oco':
+                            this.processOCOOrder(order);
+                            break;
+                        case 'scale-in':
+                            this.processScaleInOrder(order);
+                            break;
+                        case 'scale-out':
+                            this.processScaleOutOrder(order);
+                            break;
+                    }
+                });
+
+                // Remove completed orders
+                this.advancedOrders = this.advancedOrders.filter(order => order.status === 'active');
+            }
+
+            processTrailingStop(order) {
+                // Update highest price and adjust stop
+                if (this.currentPrice > order.highestPrice) {
+                    order.highestPrice = this.currentPrice;
+                    order.currentStopPrice = this.currentPrice * (1 - order.distance / 100);
+                }
+                
+                // Check if stop triggered
+                if (this.currentPrice <= order.currentStopPrice) {
+                    // Execute the trailing stop
+                    if (order.amount <= this.cryptoBalance) {
+                        // Simulate sell execution
+                        this.cryptoBalance -= order.amount;
+                        this.usdtBalance += order.amount * this.currentPrice;
+                        
+                        this.tradeHistory.push({
+                            symbol: this.symbol,
+                            type: 'sell',
+                            amount: order.amount,
+                            price: this.currentPrice,
+                            pnl: order.amount * (this.currentPrice - order.triggerPrice),
+                            timestamp: new Date().toISOString(),
+                            reason: 'trailing-stop'
+                        });
+
+                        order.status = 'executed';
+                        this.showMessage(`🎯 Trailing Stop ejecutado: ${order.amount.toFixed(6)} ${this.symbol.replace('USDT', '')} a $${this.currentPrice.toLocaleString()}`, 'info');
+                        this.updateDisplay();
+                        this.saveData();
+                    }
+                }
+            }
+
+            processOCOOrder(order) {
+                // Check take profit
+                if (this.currentPrice >= order.takeProfitPrice) {
+                    if (order.amount <= this.cryptoBalance) {
+                        this.cryptoBalance -= order.amount;
+                        this.usdtBalance += order.amount * order.takeProfitPrice;
+                        
+                        this.tradeHistory.push({
+                            symbol: this.symbol,
+                            type: 'sell',
+                            amount: order.amount,
+                            price: order.takeProfitPrice,
+                            pnl: order.amount * (order.takeProfitPrice - order.entryPrice),
+                            timestamp: new Date().toISOString(),
+                            reason: 'oco-take-profit'
+                        });
+
+                        order.status = 'executed-tp';
+                        this.showMessage(`⚖️ OCO Take Profit ejecutado a $${order.takeProfitPrice.toLocaleString()}`, 'success');
+                        this.updateDisplay();
+                        this.saveData();
+                    }
+                }
+                // Check stop loss
+                else if (this.currentPrice <= order.stopLossPrice) {
+                    if (order.amount <= this.cryptoBalance) {
+                        this.cryptoBalance -= order.amount;
+                        this.usdtBalance += order.amount * order.stopLossPrice;
+                        
+                        this.tradeHistory.push({
+                            symbol: this.symbol,
+                            type: 'sell',
+                            amount: order.amount,
+                            price: order.stopLossPrice,
+                            pnl: order.amount * (order.stopLossPrice - order.entryPrice),
+                            timestamp: new Date().toISOString(),
+                            reason: 'oco-stop-loss'
+                        });
+
+                        order.status = 'executed-sl';
+                        this.showMessage(`⚖️ OCO Stop Loss ejecutado a $${order.stopLossPrice.toLocaleString()}`, 'error');
+                        this.updateDisplay();
+                        this.saveData();
+                    }
+                }
+            }
+
+            processScaleInOrder(order) {
+                const amountPerLevel = order.totalAmount / order.levels;
+                
+                for (let i = order.executedLevels; i < order.levels; i++) {
+                    const targetPrice = order.basePrice * Math.pow(1 - order.reduction / 100, i);
+                    
+                    if (this.currentPrice <= targetPrice && amountPerLevel <= this.usdtBalance) {
+                        // Execute this level
+                        const cryptoAmount = amountPerLevel / this.currentPrice;
+                        this.cryptoBalance += cryptoAmount;
+                        this.usdtBalance -= amountPerLevel;
+                        
+                        this.tradeHistory.push({
+                            symbol: this.symbol,
+                            type: 'buy',
+                            amount: cryptoAmount,
+                            price: this.currentPrice,
+                            pnl: 0,
+                            timestamp: new Date().toISOString(),
+                            reason: `scale-in-level-${i + 1}`
+                        });
+
+                        order.executedLevels++;
+                        this.showMessage(`📈 Scale In Nivel ${i + 1} ejecutado: $${amountPerLevel.toFixed(2)} a $${this.currentPrice.toLocaleString()}`, 'success');
+                        this.updateDisplay();
+                        this.saveData();
+                        
+                        // Check if all levels executed
+                        if (order.executedLevels >= order.levels) {
+                            order.status = 'completed';
+                            this.showMessage(`📈 Scale In completado: Todos los ${order.levels} niveles ejecutados`, 'success');
+                        }
+                        break; // Only execute one level per price check
+                    }
+                }
+            }
+
+            processScaleOutOrder(order) {
+                const amountPerLevel = order.totalAmount / order.levels;
+                
+                for (let i = order.executedLevels; i < order.levels; i++) {
+                    const targetPrice = order.basePrice * Math.pow(1 + order.increment / 100, i);
+                    
+                    if (this.currentPrice >= targetPrice && amountPerLevel <= this.cryptoBalance) {
+                        // Execute this level
+                        this.cryptoBalance -= amountPerLevel;
+                        this.usdtBalance += amountPerLevel * this.currentPrice;
+                        
+                        this.tradeHistory.push({
+                            symbol: this.symbol,
+                            type: 'sell',
+                            amount: amountPerLevel,
+                            price: this.currentPrice,
+                            pnl: amountPerLevel * (this.currentPrice - order.basePrice),
+                            timestamp: new Date().toISOString(),
+                            reason: `scale-out-level-${i + 1}`
+                        });
+
+                        order.executedLevels++;
+                        this.showMessage(`📉 Scale Out Nivel ${i + 1} ejecutado: ${amountPerLevel.toFixed(6)} ${this.symbol.replace('USDT', '')} a $${this.currentPrice.toLocaleString()}`, 'success');
+                        this.updateDisplay();
+                        this.saveData();
+                        
+                        // Check if all levels executed amag
+                        if (order.executedLevels >= order.levels) {
+                            order.status = 'completed';
+                            this.showMessage(`📉 Scale Out completado: Todos los ${order.levels} niveles ejecutados`, 'success');
+                        }
+                        break; // Only execute one level per price check
+                    }
+                }
+            }
+
+            updatePositionValues() {
+                this.activePositions.forEach(position => {
+                    position.currentValue = position.quantity * this.currentPrice;
+                    position.unrealizedPnl = (this.currentPrice - position.entryPrice) * position.quantity - position.fee;
+                });
+            }
+
+            updateDisplay() {
+                // Update balances
+                document.getElementById('spotBalance').textContent = `${this.usdtBalance.toFixed(2)} USDT`;
+                document.getElementById('usdtBalance-manual-spot').textContent = `${this.usdtBalance.toFixed(2)} USDT`;
+
+                const capitalNetElement = document.getElementById('spotCapitalNet');
+                if (capitalNetElement) {
+                    capitalNetElement.textContent = `Capital neto: ${this.capitalNet.toFixed(2)} USDT`;
+                }
+                
+                const cryptoSymbol = this.symbol.replace('USDT', '');
+                document.getElementById('cryptoBalance-manual-spot').textContent = `${this.cryptoBalance.toFixed(6)} ${cryptoSymbol}`;
+                
+                // Calculate total value
+                this.totalValue = this.usdtBalance + (this.cryptoBalance * this.currentPrice);
+                document.getElementById('totalValue-manual-spot').textContent = `${this.totalValue.toFixed(2)} USDT`;
+                
+                // Calculate total PnL vs net capital
+                const totalPnlValue = this.totalValue - this.capitalNet;
+                const totalPnlPercent = this.capitalNet > 0 ? (totalPnlValue / this.capitalNet) * 100 : 0;
+                document.getElementById('totalPnl-manual-spot').textContent = 
+                    `${totalPnlValue >= 0 ? '+' : ''}${totalPnlValue.toFixed(2)} USDT (${totalPnlPercent >= 0 ? '+' : ''}${totalPnlPercent.toFixed(2)}%)`;
+                
+                document.getElementById('totalTrades-manual-spot').textContent = this.totalTrades;
+                
+                // Update active positions display
+                this.updateActivePositions();
+            }
+
+            updateActivePositions() {
+                const container = document.getElementById('activePositions-manual-spot');
+                
+                if (this.activePositions.length === 0) {
+                    container.innerHTML = '<div style="text-align: center; color: #bdc3c7; padding: 20px;">No hay posiciones activas</div>';
+                    return;
+                }
+                
+                container.innerHTML = this.activePositions.map(position => {
+                    const pnl = (this.currentPrice - position.entryPrice) * position.quantity - position.fee;
+                    const pnlPercent = (pnl / position.value) * 100;
+                    const pnlClass = pnl >= 0 ? 'pnl-positive' : 'pnl-negative';
+                    
+                    return `
+                        <div class="position-item">
+                            <div>
+                                <strong>${position.symbol.replace('USDT', '')}</strong><br>
+                                ${position.quantity.toFixed(6)} @ $${position.entryPrice.toFixed(2)}
+                            </div>
+                            <div class="${pnlClass}">
+                                ${pnl >= 0 ? '+' : ''}$${pnl.toFixed(2)}<br>
+                                (${pnlPercent >= 0 ? '+' : ''}${pnlPercent.toFixed(2)}%)
+                                <br><button onclick="window.manualSpotTrader.closeIndividualPosition(${position.id})" 
+                                          style="font-size: 10px; padding: 2px 6px; margin-top: 4px; background: #e74c3c; border: none; border-radius: 3px; color: white; cursor: pointer;">
+                                    Cerrar
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            }
+
+            initializeChart() {
+                const ctx = document.getElementById('spotChart-manual');
+                if (!ctx) return;
+                
+                this.chart = new Chart(ctx.getContext('2d'), {
+                    type: 'line',
+                    data: {
+                        labels: [],
+                        datasets: [{
+                            label: 'Precio',
+                            data: [],
+                            borderColor: '#3498db',
+                            backgroundColor: 'rgba(52, 152, 219, 0.1)',
+                            borderWidth: 2,
+                            fill: false,
+                            tension: 0.1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                labels: { color: '#ecf0f1' }
+                            }
+                        },
+                        scales: {
+                            x: {
+                                ticks: { color: '#bdc3c7' },
+                                grid: { color: 'rgba(255, 255, 255, 0.1)' }
+                            },
+                            y: {
+                                ticks: { color: '#bdc3c7' },
+                                grid: { color: 'rgba(255, 255, 255, 0.1)' }
+                            }
+                        }
+                    }
+                });
+
+                // Update chart periodically
+                setInterval(() => {
+                    this.updateChart();
+                    this.updateTechnicalIndicators();
+                }, 5000);
+            }
+
+            updateTechnicalIndicators() {
+                if (this.priceHistory.length > 0) {
+                    TechnicalIndicators.updateIndicators('spot', this.currentPrice, this.priceHistory);
+                }
+            }
+
+            updateChart() {
+                if (!this.chart) return;
+
+                this.priceHistory.push({
+                    time: new Date(),
+                    price: this.currentPrice
+                });
+
+                // Keep only last 20 points
+                if (this.priceHistory.length > 20) {
+                    this.priceHistory.shift();
+                }
+
+                const labels = this.priceHistory.map(item => 
+                    item.time.toLocaleTimeString('es-ES', { 
+                        hour: '2-digit', 
+                        minute: '2-digit' 
+                    })
+                );
+                
+                const data = this.priceHistory.map(item => item.price);
+
+                this.chart.data.labels = labels;
+                this.chart.data.datasets[0].data = data;
+                this.chart.update('none');
+            }
+
+            editBalance() {
+                const currentBalance = this.usdtBalance + (this.cryptoBalance * this.currentPrice);
+                const newBalance = prompt(`Ingresa el nuevo balance total (USDT):\n\nBalance actual: ${currentBalance.toFixed(2)} USDT`, currentBalance.toFixed(2));
+                
+                if (newBalance !== null && !isNaN(newBalance) && parseFloat(newBalance) >= 0) {
+                    const balanceValue = parseFloat(newBalance);
+                    
+                    // Reset balances
+                    const cryptoValue = this.cryptoBalance * this.currentPrice;
+                    if (balanceValue < cryptoValue && this.currentPrice > 0) {
+                        this.cryptoBalance = balanceValue / this.currentPrice;
+                        this.usdtBalance = 0;
+                    } else {
+                        this.usdtBalance = balanceValue - cryptoValue;
+                    }
+                    
+                    this.capitalNet = balanceValue;
+                    
+                    this.totalValue = balanceValue;
+                    this.updateDisplay();
+                    this.saveData(); // Save after balance edit
+                    this.showMessage(`Balance actualizado a ${balanceValue.toFixed(2)} USDT`, 'success');
+                } else if (newBalance !== null) {
+                    this.showMessage('Por favor ingresa un valor válido', 'error');
+                }
+            }
+
+            updateCapital(isAdd) {
+                const capitalInput = document.getElementById('spotCapitalAmount');
+                if (!capitalInput) return;
+
+                const amount = parseFloat(capitalInput.value);
+                if (!amount || amount <= 0) {
+                    this.showMessage('Ingresa un monto válido', 'error');
+                    return;
+                }
+
+                if (isAdd) {
+                    this.usdtBalance += amount;
+                    this.capitalNet += amount;
+                    this.showMessage(`Capital agregado: +${amount.toFixed(2)} USDT`, 'success');
+                } else {
+                    if (amount > this.usdtBalance) {
+                        this.showMessage('Fondos insuficientes para retirar', 'error');
+                        return;
+                    }
+                    this.usdtBalance -= amount;
+                    this.capitalNet = Math.max(0, this.capitalNet - amount);
+                    this.showMessage(`Capital retirado: -${amount.toFixed(2)} USDT`, 'warning');
+                }
+
+                capitalInput.value = '';
+                this.updateDisplay();
+                this.saveData();
+            }
+
+            // ===== ADVANCED ORDERS FUNCTIONALITY =====
+            showAdvancedOrderForm(orderType) {
+                const formContainer = document.getElementById('advancedOrderForm-spot');
+                if (!formContainer) return;
+
+                formContainer.style.display = 'block';
+                
+                let formHTML = '';
+                switch (orderType) {
+                    case 'trailing-stop':
+                        formHTML = this.createTrailingStopForm();
+                        break;
+                    case 'oco':
+                        formHTML = this.createOCOForm();
+                        break;
+                    case 'scale-in':
+                        formHTML = this.createScaleInForm();
+                        break;
+                    case 'scale-out':
+                        formHTML = this.createScaleOutForm();
+                        break;
+                    default:
+                        formContainer.style.display = 'none';
+                        return;
+                }
+                
+                formContainer.innerHTML = formHTML;
+                this.setupAdvancedOrderListeners(orderType);
+            }
+
+            createTrailingStopForm() {
+                return `
+                    <div class="advanced-form">
+                        <h5>🎯 Trailing Stop Configuration</h5>
+                        <div class="form-group">
+                            <label>Cantidad (${this.symbol.replace('USDT', '')})</label>
+                            <input type="number" id="trailing-amount" step="0.001" placeholder="0.001" max="${this.cryptoBalance}">
+                            <small>Disponible: ${this.cryptoBalance.toFixed(6)} ${this.symbol.replace('USDT', '')}</small>
+                        </div>
+                        <div class="form-group">
+                            <label>Trail Distance (%)</label>
+                            <input type="number" id="trailing-distance" value="2" step="0.1" min="0.1" max="10">
+                            <small>Distancia en % que seguirá el precio</small>
+                        </div>
+                        <button class="execute-btn" id="createTrailingStop">🎯 Crear Trailing Stop</button>
+                        <button class="cancel-btn" onclick="document.getElementById('advancedOrderForm-spot').style.display='none'">❌ Cancelar</button>
+                    </div>
+                `;
+            }
+
+            createOCOForm() {
+                const profitPrice = (this.currentPrice * 1.05).toFixed(2);
+                const lossPrice = (this.currentPrice * 0.95).toFixed(2);
+                return `
+                    <div class="advanced-form">
+                        <h5>⚖️ OCO Order Configuration</h5>
+                        <div class="form-group">
+                            <label>Cantidad (${this.symbol.replace('USDT', '')})</label>
+                            <input type="number" id="oco-amount" step="0.001" placeholder="0.001" max="${this.cryptoBalance}">
+                            <small>Disponible: ${this.cryptoBalance.toFixed(6)} ${this.symbol.replace('USDT', '')}</small>
+                        </div>
+                        <div class="form-group">
+                            <label>🟢 Take Profit Price ($)</label>
+                            <input type="number" id="oco-take-profit" step="0.01" value="${profitPrice}">
+                            <small>Precio de ganancia objetivo (+5%)</small>
+                        </div>
+                        <div class="form-group">
+                            <label>🔴 Stop Loss Price ($)</label>
+                            <input type="number" id="oco-stop-loss" step="0.01" value="${lossPrice}">
+                            <small>Precio de pérdida máxima (-5%)</small>
+                        </div>
+                        <button class="execute-btn" id="createOCO">⚖️ Crear OCO Order</button>
+                        <button class="cancel-btn" onclick="document.getElementById('advancedOrderForm-spot').style.display='none'">❌ Cancelar</button>
+                    </div>
+                `;
+            }
+
+            createScaleInForm() {
+                return `
+                    <div class="advanced-form">
+                        <h5>📈 Scale In Configuration</h5>
+                        <div class="form-group">
+                            <label>Inversión Total (USDT)</label>
+                            <input type="number" id="scalein-total" step="1" value="500" max="${this.usdtBalance}">
+                            <small>Disponible: ${this.usdtBalance.toFixed(2)} USDT</small>
+                        </div>
+                        <div class="form-group">
+                            <label>Número de Entradas</label>
+                            <select id="scalein-levels">
+                                <option value="3">3 niveles</option>
+                                <option value="4" selected>4 niveles</option>
+                                <option value="5">5 niveles</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Reducción por Nivel (%)</label>
+                            <input type="number" id="scalein-reduction" value="3" step="0.5" min="1" max="10">
+                            <small>% de reducción en precio entre niveles</small>
+                        </div>
+                        <div id="scalein-preview" class="info-box"></div>
+                        <button class="execute-btn" id="createScaleIn">📈 Crear Scale In</button>
+                        <button class="preview-btn" id="previewScaleIn" style="background: #3498db;">👁️ Vista Previa</button>
+                        <button class="cancel-btn" onclick="document.getElementById('advancedOrderForm-spot').style.display='none'">❌ Cancelar</button>
+                    </div>
+                `;
+            }
+
+            createScaleOutForm() {
+                if (this.cryptoBalance === 0) {
+                    return `
+                        <div class="advanced-form">
+                            <h5>📉 Scale Out Configuration</h5>
+                            <div class="info-box">
+                                <strong>⚠️ No tienes ${this.symbol.replace('USDT', '')} para vender</strong><br>
+                                Necesitas tener crypto antes de crear una orden Scale Out.
+                            </div>
+                            <button class="cancel-btn" onclick="document.getElementById('advancedOrderForm-spot').style.display='none'">❌ Cerrar</button>
+                        </div>
+                    `;
+                }
+
+                return `
+                    <div class="advanced-form">
+                        <h5>📉 Scale Out Configuration</h5>
+                        <div class="form-group">
+                            <label>Cantidad Total a Vender</label>
+                            <input type="number" id="scaleout-amount" step="0.001" value="${this.cryptoBalance}" max="${this.cryptoBalance}">
+                            <small>Disponible: ${this.cryptoBalance.toFixed(6)} ${this.symbol.replace('USDT', '')}</small>
+                        </div>
+                        <div class="form-group">
+                            <label>Número de Salidas</label>
+                            <select id="scaleout-levels">
+                                <option value="3">3 niveles</option>
+                                <option value="4" selected>4 niveles</option>
+                                <option value="5">5 niveles</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Incremento por Nivel (%)</label>
+                            <input type="number" id="scaleout-increment" value="5" step="0.5" min="1" max="15">
+                            <small>% de incremento en precio entre niveles</small>
+                        </div>
+                        <div id="scaleout-preview" class="info-box"></div>
+                        <button class="execute-btn" id="createScaleOut">📉 Crear Scale Out</button>
+                        <button class="preview-btn" id="previewScaleOut" style="background: #3498db;">👁️ Vista Previa</button>
+                        <button class="cancel-btn" onclick="document.getElementById('advancedOrderForm-spot').style.display='none'">❌ Cancelar</button>
+                    </div>
+                `;
+            }
+
+            setupAdvancedOrderListeners(orderType) {
+                switch (orderType) {
+                    case 'trailing-stop':
+                        const createTrailingBtn = document.getElementById('createTrailingStop');
+                        if (createTrailingBtn) {
+                            createTrailingBtn.addEventListener('click', () => this.createTrailingStopOrder());
+                        }
+                        break;
+                    case 'oco':
+                        const createOCOBtn = document.getElementById('createOCO');
+                        if (createOCOBtn) {
+                            createOCOBtn.addEventListener('click', () => this.createOCOOrder());
+                        }
+                        break;
+                    case 'scale-in':
+                        const createScaleInBtn = document.getElementById('createScaleIn');
+                        const previewScaleInBtn = document.getElementById('previewScaleIn');
+                        if (createScaleInBtn) {
+                            createScaleInBtn.addEventListener('click', () => this.createScaleInOrder());
+                        }
+                        if (previewScaleInBtn) {
+                            previewScaleInBtn.addEventListener('click', () => this.previewScaleIn());
+                        }
+                        break;
+                    case 'scale-out':
+                        const createScaleOutBtn = document.getElementById('createScaleOut');
+                        const previewScaleOutBtn = document.getElementById('previewScaleOut');
+                        if (createScaleOutBtn) {
+                            createScaleOutBtn.addEventListener('click', () => this.createScaleOutOrder());
+                        }
+                        if (previewScaleOutBtn) {
+                            previewScaleOutBtn.addEventListener('click', () => this.previewScaleOut());
+                        }
+                        break;
+                }
+            }
+
+            createTrailingStopOrder() {
+                const amount = parseFloat(document.getElementById('trailing-amount').value);
+                const distance = parseFloat(document.getElementById('trailing-distance').value);
+
+                if (!amount || amount <= 0) {
+                    this.showMessage('Ingresa una cantidad válida', 'error');
+                    return;
+                }
+
+                if (amount > this.cryptoBalance) {
+                    this.showMessage('Cantidad insuficiente de crypto', 'error');
+                    return;
+                }
+
+                const order = {
+                    id: Date.now(),
+                    type: 'trailing-stop',
+                    amount: amount,
+                    distance: distance,
+                    triggerPrice: this.currentPrice,
+                    currentStopPrice: this.currentPrice * (1 - distance / 100),
+                    highestPrice: this.currentPrice,
+                    status: 'active',
+                    timestamp: new Date().toISOString()
+                };
+
+                if (!this.advancedOrders) this.advancedOrders = [];
+                this.advancedOrders.push(order);
+
+                this.showMessage(`🎯 Trailing Stop creado: ${amount} ${this.symbol.replace('USDT', '')} con trail de ${distance}%`, 'success');
+                this.saveData();
+                
+                document.getElementById('advancedOrderForm-spot').style.display = 'none';
+                document.querySelectorAll('#manual-spot .advanced-order-btn').forEach(btn => btn.classList.remove('active'));
+            }
+
+            createOCOOrder() {
+                const amount = parseFloat(document.getElementById('oco-amount').value);
+                const takeProfitPrice = parseFloat(document.getElementById('oco-take-profit').value);
+                const stopLossPrice = parseFloat(document.getElementById('oco-stop-loss').value);
+
+                if (!amount || amount <= 0) {
+                    this.showMessage('Ingresa una cantidad válida', 'error');
+                    return;
+                }
+
+                if (amount > this.cryptoBalance) {
+                    this.showMessage('Cantidad insuficiente de crypto', 'error');
+                    return;
+                }
+
+                if (!takeProfitPrice || !stopLossPrice) {
+                    this.showMessage('Ingresa precios válidos para Take Profit y Stop Loss', 'error');
+                    return;
+                }
+
+                if (takeProfitPrice <= this.currentPrice || stopLossPrice >= this.currentPrice) {
+                    this.showMessage('Take Profit debe ser mayor al precio actual y Stop Loss menor', 'error');
+                    return;
+                }
+
+                const order = {
+                    id: Date.now(),
+                    type: 'oco',
+                    amount: amount,
+                    entryPrice: this.currentPrice,
+                    takeProfitPrice: takeProfitPrice,
+                    stopLossPrice: stopLossPrice,
+                    status: 'active',
+                    timestamp: new Date().toISOString()
+                };
+
+                if (!this.advancedOrders) this.advancedOrders = [];
+                this.advancedOrders.push(order);
+
+                this.showMessage(`⚖️ OCO Order creada: TP $${takeProfitPrice.toLocaleString()} / SL $${stopLossPrice.toLocaleString()}`, 'success');
+                this.saveData();
+                
+                document.getElementById('advancedOrderForm-spot').style.display = 'none';
+                document.querySelectorAll('#manual-spot .advanced-order-btn').forEach(btn => btn.classList.remove('active'));
+            }
+
+            previewScaleIn() {
+                const total = parseFloat(document.getElementById('scalein-total').value);
+                const levels = parseInt(document.getElementById('scalein-levels').value);
+                const reduction = parseFloat(document.getElementById('scalein-reduction').value);
+
+                if (!total || !levels || !reduction) {
+                    document.getElementById('scalein-preview').innerHTML = '<small>Complete los campos para ver vista previa</small>';
+                    return;
+                }
+
+                const basePrice = this.currentPrice;
+                const amountPerLevel = total / levels;
+                let preview = '<strong>📊 Vista Previa Scale In:</strong><br><br>';
+
+                for (let i = 0; i < levels; i++) {
+                    const price = basePrice * Math.pow(1 - reduction / 100, i);
+                    const crypto = amountPerLevel / price;
+                    const status = price <= this.currentPrice ? '✅' : '⏳';
+                    preview += `${status} Nivel ${i + 1}: $${amountPerLevel.toFixed(0)} a $${price.toLocaleString()} = ${crypto.toFixed(6)} ${this.symbol.replace('USDT', '')}<br>`;
+                }
+
+                document.getElementById('scalein-preview').innerHTML = preview;
+            }
+
+            createScaleInOrder() {
+                const total = parseFloat(document.getElementById('scalein-total').value);
+                const levels = parseInt(document.getElementById('scalein-levels').value);
+                const reduction = parseFloat(document.getElementById('scalein-reduction').value);
+
+                if (!total || !levels || !reduction) {
+                    this.showMessage('Completa todos los campos', 'error');
+                    return;
+                }
+
+                if (total > this.usdtBalance) {
+                    this.showMessage('Fondos insuficientes', 'error');
+                    return;
+                }
+
+                const basePrice = this.currentPrice;
+                const order = {
+                    id: Date.now(),
+                    type: 'scale-in',
+                    totalAmount: total,
+                    levels: levels,
+                    reduction: reduction,
+                    basePrice: basePrice,
+                    executedLevels: 0,
+                    status: 'active',
+                    timestamp: new Date().toISOString()
+                };
+
+                if (!this.advancedOrders) this.advancedOrders = [];
+                this.advancedOrders.push(order);
+
+                this.showMessage(`📈 Scale In creado: ${levels} niveles por $${total.toLocaleString()} total`, 'success');
+                this.saveData();
+                
+                document.getElementById('advancedOrderForm-spot').style.display = 'none';
+                document.querySelectorAll('#manual-spot .advanced-order-btn').forEach(btn => btn.classList.remove('active'));
+            }
+
+            previewScaleOut() {
+                const amount = parseFloat(document.getElementById('scaleout-amount').value);
+                const levels = parseInt(document.getElementById('scaleout-levels').value);
+                const increment = parseFloat(document.getElementById('scaleout-increment').value);
+
+                if (!amount || !levels || !increment) {
+                    document.getElementById('scaleout-preview').innerHTML = '<small>Complete los campos para ver vista previa</small>';
+                    return;
+                }
+
+                const basePrice = this.currentPrice;
+                const amountPerLevel = amount / levels;
+                let preview = '<strong>📊 Vista Previa Scale Out:</strong><br><br>';
+
+                for (let i = 0; i < levels; i++) {
+                    const price = basePrice * Math.pow(1 + increment / 100, i);
+                    const value = amountPerLevel * price;
+                    const status = price <= this.currentPrice ? '✅' : '⏳';
+                    preview += `${status} Nivel ${i + 1}: ${amountPerLevel.toFixed(6)} ${this.symbol.replace('USDT', '')} a $${price.toLocaleString()} = $${value.toFixed(2)}<br>`;
+                }
+
+                document.getElementById('scaleout-preview').innerHTML = preview;
+            }
+
+            createScaleOutOrder() {
+                const amount = parseFloat(document.getElementById('scaleout-amount').value);
+                const levels = parseInt(document.getElementById('scaleout-levels').value);
+                const increment = parseFloat(document.getElementById('scaleout-increment').value);
+
+                if (!amount || !levels || !increment) {
+                    this.showMessage('Completa todos los campos', 'error');
+                    return;
+                }
+
+                if (amount > this.cryptoBalance) {
+                    this.showMessage('Cantidad insuficiente de crypto', 'error');
+                    return;
+                }
+
+                const basePrice = this.currentPrice;
+                const order = {
+                    id: Date.now(),
+                    type: 'scale-out',
+                    totalAmount: amount,
+                    levels: levels,
+                    increment: increment,
+                    basePrice: basePrice,
+                    executedLevels: 0,
+                    status: 'active',
+                    timestamp: new Date().toISOString()
+                };
+
+                if (!this.advancedOrders) this.advancedOrders = [];
+                this.advancedOrders.push(order);
+
+                this.showMessage(`📉 Scale Out creado: ${levels} niveles para ${amount.toFixed(6)} ${this.symbol.replace('USDT', '')}`, 'success');
+                this.saveData();
+                
+                document.getElementById('advancedOrderForm-spot').style.display = 'none';
+                document.querySelectorAll('#manual-spot .advanced-order-btn').forEach(btn => btn.classList.remove('active'));
+            }
+
+            closeIndividualPosition(positionId) {
+                this.closePositionById(positionId, 'manual');
+            }
+
+            closePositionById(positionId, reason = 'manual') {
+                const positionIndex = this.activePositions.findIndex(p => p.id === positionId);
+                if (positionIndex === -1) {
+                    this.showMessage('Posición no encontrada', 'error');
+                    return;
+                }
+
+                const position = this.activePositions[positionIndex];
+                const pnl = (this.currentPrice - position.entryPrice) * position.quantity - position.fee;
+
+                // Return crypto to USDT at current market price
+                this.cryptoBalance -= position.quantity;
+                this.usdtBalance += (position.quantity * this.currentPrice);
+
+                // Update total PnL
+                this.totalPnl += pnl;
+
+                // Remove position
+                this.activePositions.splice(positionIndex, 1);
+
+                // Record in history
+                this.tradeHistory.push({
+                    type: 'close',
+                    symbol: position.symbol.replace('USDT', ''),
+                    quantity: position.quantity,
+                    entryPrice: position.entryPrice,
+                    exitPrice: this.currentPrice,
+                    pnl: pnl,
+                    reason: reason,
+                    timestamp: new Date()
+                });
+
+                this.updateDisplay();
+                this.saveData();
+
+                const cryptoSymbol = position.symbol.replace('USDT', '');
+                const reasonText = reason === 'stop-loss' ? 'Stop Loss' : reason === 'take-profit' ? 'Take Profit' : 'cerrada';
+                this.showMessage(
+                    `Posición ${cryptoSymbol} ${reasonText}: PnL ${pnl >= 0 ? '+' : ''}${pnl.toFixed(2)} USDT`,
+                    pnl >= 0 ? 'success' : 'error'
+                );
+            }
+
+            loadData() {
+                const savedData = DataManager.loadData('manualSpotData');
+                if (savedData) {
+                    this.usdtBalance = typeof savedData.usdtBalance === 'number' ? savedData.usdtBalance : 0;
+                    this.cryptoBalance = typeof savedData.cryptoBalance === 'number' ? savedData.cryptoBalance : 0;
+                    this.totalValue = typeof savedData.totalValue === 'number' ? savedData.totalValue : 0;
+                    this.totalPnl = typeof savedData.totalPnl === 'number' ? savedData.totalPnl : 0;
+                    this.totalTrades = typeof savedData.totalTrades === 'number' ? savedData.totalTrades : 0;
+                    this.capitalNet = typeof savedData.capitalNet === 'number' ? savedData.capitalNet : this.usdtBalance;
+                    this.activePositions = savedData.activePositions || [];
+                    this.tradeHistory = savedData.tradeHistory || [];
+                    this.symbol = savedData.symbol || 'BTCUSDT';
+                    
+                    // Restore form values if saved
+                    if (savedData.formData) {
+                        setTimeout(() => {
+                            const symbolSelect = document.getElementById('symbol-manual-spot');
+                            if (symbolSelect) symbolSelect.value = this.symbol;
+                        }, 100);
+                    }
+                }
+            }
+
+            saveData() {
+                const dataToSave = {
+                    usdtBalance: this.usdtBalance,
+                    cryptoBalance: this.cryptoBalance,
+                    totalValue: this.totalValue,
+                    totalPnl: this.totalPnl,
+                    totalTrades: this.totalTrades,
+                    capitalNet: this.capitalNet,
+                    activePositions: this.activePositions,
+                    tradeHistory: this.tradeHistory,
+                    symbol: this.symbol,
+                    formData: {
+                        orderType: this.orderType,
+                        orderMode: this.orderMode
+                    },
+                    lastSaved: new Date().toISOString()
+                };
+                
+                DataManager.saveData('manualSpotData', dataToSave);
+            }
+
+            setupAutoSave() {
+                // Save data every 10 seconds
+                setInterval(() => {
+                    this.saveData();
+                }, 10000);
+                
+                // Save on page unload
+                window.addEventListener('beforeunload', () => {
+                    this.saveData();
+                });
+            }
+
+            showMessage(message, type) {
+                const messageArea = document.getElementById('messageArea-manual-spot');
+                if (messageArea) {
+                    const messageDiv = document.createElement('div');
+                    messageDiv.className = type;
+                    messageDiv.textContent = message;
+                    
+                    messageArea.innerHTML = '';
+                    messageArea.appendChild(messageDiv);
+                    
+                    setTimeout(() => {
+                        if (messageDiv.parentNode) {
+                            messageDiv.remove();
+                        }
+                    }, 3000);
+                }
+            }
+        }
+
+        // Manual Futures Trading Class  
+        class ManualFuturesTrader {
+            constructor() {
+                this.currentPrice = 0;
+                this.availableMargin = 0;
+                this.usedMargin = 0;
+                this.unrealizedPnl = 0;
+                this.realizedPnl = 0;
+                this.fundingFees = 0;
+                this.totalTrades = 0;
+                this.capitalNet = 0;
+                this.activePositions = [];
+                this.tradeHistory = [];
+                this.chart = null;
+                this.priceHistory = [];
+                this.orderType = 'long';
+                this.orderMode = 'limit';
+                this.leverage = 10;
+                this.symbol = 'BTCUSDT';
+                
+                this.init();
+            }
+
+            init() {
+                this.loadData(); // Load saved data first
+                this.setupEventListeners();
+                this.initializeChart();
+                this.getCurrentPrice();
+                this.updateDisplay();
+                this.startFundingFeeTimer();
+                this.startPriceUpdates();
+                this.setupAutoSave(); // Setup auto-save
+            }
+
+            startPriceUpdates() {
+                // Update price every 2 seconds
+                setInterval(() => {
+                    this.getCurrentPrice();
+                    this.checkStopLossTakeProfit();
+                }, 2000);
+            }
+
+            setupEventListeners() {
+                // Leverage selector
+                document.querySelectorAll('#manual-futures .leverage-btn').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        document.querySelectorAll('#manual-futures .leverage-btn').forEach(b => {
+                            b.classList.remove('active');
+                        });
+                        btn.classList.add('active');
+                        this.leverage = parseInt(btn.dataset.leverage);
+                        this.calculatePositionSize();
+                    });
+                });
+
+                // Order type selector (Long/Short)
+                document.querySelectorAll('#manual-futures .order-type-btn[data-type]').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        document.querySelectorAll('#manual-futures .order-type-btn[data-type]').forEach(b => {
+                            b.classList.remove('active');
+                        });
+                        btn.classList.add('active');
+                        this.orderType = btn.dataset.type;
+                    });
+                });
+
+                // Order mode selector (Market/Limit)
+                document.querySelectorAll('#manual-futures .order-type-btn[data-order]').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        document.querySelectorAll('#manual-futures .order-type-btn[data-order]').forEach(b => {
+                            b.classList.remove('active');
+                        });
+                        btn.classList.add('active');
+                        this.orderMode = btn.dataset.order;
+                        this.updateOrderForm();
+                    });
+                });
+
+                // Symbol change
+                document.getElementById('symbol-manual-futures').addEventListener('change', () => {
+                    this.symbol = document.getElementById('symbol-manual-futures').value;
+                    this.getCurrentPrice();
+                });
+
+                // Price/Margin changes
+                document.getElementById('orderPrice-manual-futures').addEventListener('input', () => {
+                    this.calculatePositionSize();
+                });
+                
+                document.getElementById('orderMargin-manual-futures').addEventListener('input', () => {
+                    this.calculatePositionSize();
+                });
+
+                // Execute buttons
+                document.getElementById('executeLong-manual-futures').addEventListener('click', () => {
+                    this.executeTrade('long');
+                });
+                
+                document.getElementById('executeShort-manual-futures').addEventListener('click', () => {
+                    this.executeTrade('short');
+                });
+
+                // Balance editor button
+                document.getElementById('editBalanceFutures').addEventListener('click', () => {
+                    this.editBalance();
+                });
+
+                const addCapitalBtn = document.getElementById('addCapitalFutures');
+                if (addCapitalBtn) {
+                    addCapitalBtn.addEventListener('click', () => {
+                        this.updateCapital(true);
+                    });
+                }
+
+                const removeCapitalBtn = document.getElementById('removeCapitalFutures');
+                if (removeCapitalBtn) {
+                    removeCapitalBtn.addEventListener('click', () => {
+                        this.updateCapital(false);
+                    });
+                }
+            }
+
+            async getCurrentPrice() {
+                try {
+                    const response = await fetch(`https://api.binance.com/api/v3/ticker/price?symbol=${this.symbol}`);
+                    const data = await response.json();
+                    this.currentPrice = parseFloat(data.price);
+                    
+                    // Update connection status
+                    this.updateConnectionStatus(true);
+                    
+                    // Update current price display
+                    const priceDisplay = document.getElementById('currentPriceDisplay-manual-futures');
+                    if (priceDisplay) {
+                        priceDisplay.textContent = this.currentPrice.toLocaleString();
+                    }
+                    
+                    // Update price in form
+                    if (this.orderMode === 'market') {
+                        document.getElementById('orderPrice-manual-futures').value = this.currentPrice;
+                    }
+                    
+                    this.calculatePositionSize();
+                    this.updatePositionValues();
+                    this.updateDisplay(); // Update display when price changes
+                    
+                } catch (error) {
+                    this.updateConnectionStatus(false);
+                    this.showMessage('Error al obtener precio: ' + error.message, 'error');
+                }
+            }
+
+            updateConnectionStatus(connected) {
+                const statusElement = document.getElementById('connectionStatus');
+                if (statusElement) {
+                    if (connected) {
+                        statusElement.innerHTML = '🟢 Conectado';
+                        statusElement.style.color = '#2ecc71';
+                    } else {
+                        statusElement.innerHTML = '🔴 Error de Conexión';
+                        statusElement.style.color = '#e74c3c';
+                    }
+                }
+            }
+
+            calculatePositionSize() {
+                const price = parseFloat(document.getElementById('orderPrice-manual-futures').value) || 0;
+                const margin = parseFloat(document.getElementById('orderMargin-manual-futures').value) || 0;
+                const positionSize = price > 0 ? (margin * this.leverage) / price : 0;
+                
+                document.getElementById('orderSize-manual-futures').value = positionSize.toFixed(3);
+                
+                // Update margin info
+                const liquidationPrice = this.calculateLiquidationPrice(price, this.orderType);
+                const marginInfo = document.getElementById('marginInfo-manual-futures');
+                if (marginInfo) {
+                    marginInfo.innerHTML = `
+                        💼 Margen Inicial: $${margin} | Posición: $${(margin * this.leverage).toFixed(0)} | 
+                        Liquidación: ~$${liquidationPrice.toFixed(0)}
+                    `;
+                }
+            }
+
+            calculateLiquidationPrice(entryPrice, type) {
+                const maintenanceMarginRate = 0.005; // 0.5%
+                const fees = 0.001; // 0.1%
+                
+                if (type === 'long') {
+                    return entryPrice * (1 - (1/this.leverage) + maintenanceMarginRate + fees);
+                } else {
+                    return entryPrice * (1 + (1/this.leverage) + maintenanceMarginRate + fees);
+                }
+            }
+
+            updateOrderForm() {
+                const priceInput = document.getElementById('orderPrice-manual-futures');
+                if (this.orderMode === 'market') {
+                    priceInput.value = this.currentPrice;
+                    priceInput.disabled = true;
+                } else {
+                    priceInput.disabled = false;
+                }
+            }
+
+            executeTrade(type) {
+                const price = parseFloat(document.getElementById('orderPrice-manual-futures').value) || 0;
+                const margin = parseFloat(document.getElementById('orderMargin-manual-futures').value) || 0;
+                const size = parseFloat(document.getElementById('orderSize-manual-futures').value) || 0;
+                const positionValue = margin * this.leverage;
+                const fee = positionValue * 0.001; // 0.1% fee
+                const stopLoss = parseFloat(document.getElementById('stopLoss-manual-futures').value) || 0;
+                const takeProfit = parseFloat(document.getElementById('takeProfit-manual-futures').value) || 0;
+
+                if (price <= 0 || margin <= 0 || size <= 0) {
+                    this.showMessage('Precio y margen deben ser mayores a 0', 'error');
+                    return;
+                }
+
+                if (this.availableMargin < margin + fee) {
+                    this.showMessage('Margen insuficiente para abrir la posición', 'error');
+                    return;
+                }
+                
+                // Execute futures order
+                this.availableMargin -= (margin + fee);
+                this.usedMargin += margin;
+                
+                // Create position with stop loss and take profit
+                const position = {
+                    id: Date.now(),
+                    type: type,
+                    symbol: this.symbol,
+                    entryPrice: price,
+                    size: size,
+                    margin: margin,
+                    leverage: this.leverage,
+                    positionValue: positionValue,
+                    fee: fee,
+                    liquidationPrice: this.calculateLiquidationPrice(price, type),
+                    stopLoss: stopLoss > 0 ? (type === 'long' ? price * (1 - stopLoss / 100) : price * (1 + stopLoss / 100)) : null,
+                    takeProfit: takeProfit > 0 ? (type === 'long' ? price * (1 + takeProfit / 100) : price * (1 - takeProfit / 100)) : null,
+                    timestamp: new Date()
+                };
+                
+                this.activePositions.push(position);
+                this.totalTrades++;
+                
+                const typeText = type === 'long' ? 'LONG' : 'SHORT';
+                this.showMessage(`Posición ${typeText} abierta: ${size.toFixed(3)} ${this.symbol.replace('USDT', '')} a $${price}`, 'success');
+                
+                this.updateDisplay();
+                this.checkStopLossTakeProfit();
+                this.saveData(); // Save after opening position
+            }
+
+            closePosition(positionId, reason = 'manual') {
+                const positionIndex = this.activePositions.findIndex(p => p.id === positionId);
+                if (positionIndex === -1) return;
+                
+                const position = this.activePositions[positionIndex];
+                const pnl = this.calculatePositionPnl(position, this.currentPrice);
+                
+                // Return margin and add/subtract PnL
+                this.availableMargin += position.margin;
+                this.usedMargin -= position.margin;
+                this.realizedPnl += pnl;
+                
+                // Remove position
+                this.activePositions.splice(positionIndex, 1);
+                
+                // Record in history
+                this.tradeHistory.push({
+                    type: 'close',
+                    symbol: position.symbol.replace('USDT', ''),
+                    positionType: position.type,
+                    size: position.size,
+                    entryPrice: position.entryPrice,
+                    exitPrice: this.currentPrice,
+                    pnl: pnl,
+                    reason: reason,
+                    timestamp: new Date()
+                });
+                
+                const reasonText = reason === 'liquidation' ? 'Liquidada' : 
+                                  reason === 'stop-loss' ? 'Stop Loss' :
+                                  reason === 'take-profit' ? 'Take Profit' : 'Cerrada';
+                
+                this.showMessage(`Posición ${reasonText}: PnL ${pnl >= 0 ? '+' : ''}$${pnl.toFixed(2)}`, 
+                                pnl >= 0 ? 'success' : 'error');
+                
+                this.updateDisplay();
+                this.saveData(); // Save after closing position
+            }
+
+            calculatePositionPnl(position, currentPrice) {
+                if (position.type === 'long') {
+                    return (currentPrice - position.entryPrice) * position.size - position.fee;
+                } else {
+                    return (position.entryPrice - currentPrice) * position.size - position.fee;
+                }
+            }
+
+            checkStopLossTakeProfit() {
+                // Use a copy of the array to avoid issues with concurrent modification
+                const positionsToCheck = [...this.activePositions];
+                
+                positionsToCheck.forEach(position => {
+                    // Check liquidation
+                    if ((position.type === 'long' && this.currentPrice <= position.liquidationPrice) ||
+                        (position.type === 'short' && this.currentPrice >= position.liquidationPrice)) {
+                        this.closePosition(position.id, 'liquidation');
+                        return;
+                    }
+                    
+                    // Check stop loss
+                    if (position.stopLoss) {
+                        if ((position.type === 'long' && this.currentPrice <= position.stopLoss) ||
+                            (position.type === 'short' && this.currentPrice >= position.stopLoss)) {
+                            this.closePosition(position.id, 'stop-loss');
+                            return;
+                        }
+                    }
+                    
+                    // Check take profit
+                    if (position.takeProfit) {
+                        if ((position.type === 'long' && this.currentPrice >= position.takeProfit) ||
+                            (position.type === 'short' && this.currentPrice <= position.takeProfit)) {
+                            this.closePosition(position.id, 'take-profit');
+                            return;
+                        }
+                    }
+                });
+            }
+
+            updatePositionValues() {
+                this.unrealizedPnl = 0;
+                this.activePositions.forEach(position => {
+                    const pnl = this.calculatePositionPnl(position, this.currentPrice);
+                    position.unrealizedPnl = pnl;
+                    this.unrealizedPnl += pnl;
+                });
+            }
+
+            startFundingFeeTimer() {
+                // Simulate funding fees every 30 seconds (normally 8 hours)
+                setInterval(() => {
+                    if (this.activePositions.length > 0) {
+                        // Random funding rate between -0.01% to +0.01%
+                        const fundingRate = (Math.random() - 0.5) * 0.0002;
+                        
+                        this.activePositions.forEach(position => {
+                            const fundingFee = position.positionValue * Math.abs(fundingRate);
+                            this.fundingFees += fundingFee * (fundingRate > 0 ? -1 : 1);
+                        });
+                        
+                        this.updateDisplay();
+                    }
+                }, 30000);
+            }
+
+            updateDisplay() {
+                // Update balances
+                document.getElementById('futuresMargin').textContent = `${this.availableMargin.toFixed(2)} USDT`;
+                document.getElementById('availableMargin-manual-futures').textContent = `${this.availableMargin.toFixed(2)} USDT`;
+                document.getElementById('usedMargin-manual-futures').textContent = `${this.usedMargin.toFixed(2)} USDT`;
+
+                const capitalNetElement = document.getElementById('futuresCapitalNet');
+                if (capitalNetElement) {
+                    capitalNetElement.textContent = `Capital neto: ${this.capitalNet.toFixed(2)} USDT`;
+                }
+                
+                // Update PnL
+                document.getElementById('unrealizedPnl-manual-futures').textContent = 
+                    `${this.unrealizedPnl >= 0 ? '+' : ''}${this.unrealizedPnl.toFixed(2)} USDT`;
+                document.getElementById('realizedPnl-manual-futures').textContent = 
+                    `${this.realizedPnl >= 0 ? '+' : ''}${this.realizedPnl.toFixed(2)} USDT`;
+                document.getElementById('fundingFees-manual-futures').textContent = 
+                    `${this.fundingFees >= 0 ? '+' : ''}${this.fundingFees.toFixed(2)} USDT`;
+                    
+                document.getElementById('totalTrades-manual-futures').textContent = this.totalTrades;
+                
+                // Update active positions display
+                this.updateActivePositions();
+            }
+
+            updateActivePositions() {
+                const container = document.getElementById('activePositions-manual-futures');
+                
+                if (this.activePositions.length === 0) {
+                    container.innerHTML = '<div style="text-align: center; color: #bdc3c7; padding: 20px;">No hay posiciones activas</div>';
+                    return;
+                }
+                
+                container.innerHTML = this.activePositions.map(position => {
+                    const pnl = this.calculatePositionPnl(position, this.currentPrice);
+                    const pnlPercent = (pnl / position.margin) * 100;
+                    const pnlClass = pnl >= 0 ? 'pnl-positive' : 'pnl-negative';
+                    
+                    // Check if close to liquidation
+                    const liquidationDistance = Math.abs(this.currentPrice - position.liquidationPrice) / this.currentPrice;
+                    const liquidationRisk = liquidationDistance < 0.1 ? 'liquidation-risk' : '';
+                    
+                    return `
+                        <div class="position-item ${liquidationRisk}">
+                            <div>
+                                <strong>${position.type.toUpperCase()} ${position.symbol.replace('USDT', '')}</strong><br>
+                                ${position.size.toFixed(3)} @ $${position.entryPrice.toFixed(2)} | ${position.leverage}x<br>
+                                <small>Liq: $${position.liquidationPrice.toFixed(0)}</small>
+                            </div>
+                            <div class="${pnlClass}">
+                                ${pnl >= 0 ? '+' : ''}$${pnl.toFixed(2)}<br>
+                                (${pnlPercent >= 0 ? '+' : ''}${pnlPercent.toFixed(2)}%)
+                                <br><button onclick="window.manualFuturesTrader.closePosition(${position.id})" 
+                                          style="font-size: 10px; padding: 2px 6px; margin-top: 4px; background: #e74c3c; border: none; border-radius: 3px; color: white; cursor: pointer;">
+                                    Cerrar
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            }
+
+            initializeChart() {
+                const ctx = document.getElementById('futuresChart-manual');
+                if (!ctx) return;
+                
+                this.chart = new Chart(ctx.getContext('2d'), {
+                    type: 'line',
+                    data: {
+                        labels: [],
+                        datasets: [{
+                            label: 'Precio',
+                            data: [],
+                            borderColor: '#3498db',
+                            backgroundColor: 'rgba(52, 152, 219, 0.1)',
+                            borderWidth: 2,
+                            fill: false,
+                            tension: 0.1
+                        }, {
+                            label: 'PnL Unrealized',
+                            data: [],
+                            borderColor: '#2ecc71',
+                            backgroundColor: 'rgba(46, 204, 113, 0.1)',
+                            borderWidth: 2,
+                            fill: false,
+                            yAxisID: 'y1'
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                labels: { color: '#ecf0f1' }
+                            }
+                        },
+                        scales: {
+                            x: {
+                                ticks: { color: '#bdc3c7' },
+                                grid: { color: 'rgba(255, 255, 255, 0.1)' }
+                            },
+                            y: {
+                                ticks: { color: '#bdc3c7' },
+                                grid: { color: 'rgba(255, 255, 255, 0.1)' }
+                            },
+                            y1: {
+                                type: 'linear',
+                                display: true,
+                                position: 'right',
+                                ticks: { color: '#2ecc71' },
+                                grid: { drawOnChartArea: false }
+                            }
+                        }
+                    }
+                });
+
+                // Update chart periodically
+                setInterval(() => {
+                    this.updateChart();
+                }, 5000);
+            }
+
+            updateChart() {
+                if (!this.chart) return;
+
+                this.priceHistory.push({
+                    time: new Date(),
+                    price: this.currentPrice,
+                    pnl: this.unrealizedPnl
+                });
+
+                // Keep only last 20 points amag
+                if (this.priceHistory.length > 20) {
+                    this.priceHistory.shift();
+                }
+
+                const labels = this.priceHistory.map(item => 
+                    item.time.toLocaleTimeString('es-ES', { 
+                        hour: '2-digit', 
+                        minute: '2-digit' 
+                    })
+                );
+                
+                const priceData = this.priceHistory.map(item => item.price);
+                const pnlData = this.priceHistory.map(item => item.pnl);
+
+                this.chart.data.labels = labels;
+                this.chart.data.datasets[0].data = priceData;
+                this.chart.data.datasets[1].data = pnlData;
+                this.chart.update('none');
+            }
+
+            editBalance() {
+                const totalBalance = this.availableMargin + this.usedMargin;
+                const newBalance = prompt(`Ingresa el nuevo balance total (USDT):\n\nBalance actual: ${totalBalance.toFixed(2)} USDT\nDisponible: ${this.availableMargin.toFixed(2)} USDT\nUsado: ${this.usedMargin.toFixed(2)} USDT`, totalBalance.toFixed(2));
+                
+                if (newBalance !== null && !isNaN(newBalance) && parseFloat(newBalance) >= 0) {
+                    const balanceValue = parseFloat(newBalance);
+                    
+                    if (balanceValue < this.usedMargin) {
+                        this.showMessage(`El nuevo balance no puede ser menor al margen usado (${this.usedMargin.toFixed(2)} USDT)`, 'error');
+                        return;
+                    }
+                    
+                    // Update balances
+                    this.availableMargin = balanceValue - this.usedMargin;
+                    this.capitalNet = balanceValue;
+                    
+                    this.updateDisplay();
+                    this.saveData(); // Save after balance edit
+                    this.showMessage(`Balance actualizado a ${balanceValue.toFixed(2)} USDT`, 'success');
+                } else if (newBalance !== null) {
+                    this.showMessage('Por favor ingresa un valor válido', 'error');
+                }
+            }
+
+            updateCapital(isAdd) {
+                const capitalInput = document.getElementById('futuresCapitalAmount');
+                if (!capitalInput) return;
+
+                const amount = parseFloat(capitalInput.value);
+                if (!amount || amount <= 0) {
+                    this.showMessage('Ingresa un monto válido', 'error');
+                    return;
+                }
+
+                if (isAdd) {
+                    this.availableMargin += amount;
+                    this.capitalNet += amount;
+                    this.showMessage(`Capital agregado: +${amount.toFixed(2)} USDT`, 'success');
+                } else {
+                    if (amount > this.availableMargin) {
+                        this.showMessage('Margen disponible insuficiente para retirar', 'error');
+                        return;
+                    }
+                    this.availableMargin -= amount;
+                    this.capitalNet = Math.max(0, this.capitalNet - amount);
+                    this.showMessage(`Capital retirado: -${amount.toFixed(2)} USDT`, 'warning');
+                }
+
+                capitalInput.value = '';
+                this.updateDisplay();
+                this.saveData();
+            }
+
+            loadData() {
+                const savedData = DataManager.loadData('manualFuturesData');
+                if (savedData) {
+                    this.availableMargin = typeof savedData.availableMargin === 'number' ? savedData.availableMargin : 0;
+                    this.usedMargin = typeof savedData.usedMargin === 'number' ? savedData.usedMargin : 0;
+                    this.unrealizedPnl = typeof savedData.unrealizedPnl === 'number' ? savedData.unrealizedPnl : 0;
+                    this.realizedPnl = typeof savedData.realizedPnl === 'number' ? savedData.realizedPnl : 0;
+                    this.fundingFees = typeof savedData.fundingFees === 'number' ? savedData.fundingFees : 0;
+                    this.totalTrades = typeof savedData.totalTrades === 'number' ? savedData.totalTrades : 0;
+                    this.capitalNet = typeof savedData.capitalNet === 'number' ? savedData.capitalNet : this.availableMargin + this.usedMargin;
+                    this.activePositions = savedData.activePositions || [];
+                    this.tradeHistory = savedData.tradeHistory || [];
+                    this.leverage = savedData.leverage || 10;
+                    this.symbol = savedData.symbol || 'BTCUSDT';
+                    
+                    // Restore form values if saved
+                    if (savedData.formData) {
+                        setTimeout(() => {
+                            const symbolSelect = document.getElementById('symbol-manual-futures');
+                            if (symbolSelect) symbolSelect.value = this.symbol;
+                            
+                            // Restore leverage selection
+                            document.querySelectorAll('#manual-futures .leverage-btn').forEach(btn => {
+                                btn.classList.remove('active');
+                                if (parseInt(btn.dataset.leverage) === this.leverage) {
+                                    btn.classList.add('active');
+                                }
+                            });
+                        }, 100);
+                    }
+                }
+            }
+
+            saveData() {
+                const dataToSave = {
+                    availableMargin: this.availableMargin,
+                    usedMargin: this.usedMargin,
+                    unrealizedPnl: this.unrealizedPnl,
+                    realizedPnl: this.realizedPnl,
+                    fundingFees: this.fundingFees,
+                    totalTrades: this.totalTrades,
+                    capitalNet: this.capitalNet,
+                    activePositions: this.activePositions,
+                    tradeHistory: this.tradeHistory,
+                    leverage: this.leverage,
+                    symbol: this.symbol,
+                    formData: {
+                        orderType: this.orderType,
+                        orderMode: this.orderMode
+                    },
+                    lastSaved: new Date().toISOString()
+                };
+                
+                DataManager.saveData('manualFuturesData', dataToSave);
+            }
+
+            setupAutoSave() {
+                // Save data every 10 seconds
+                setInterval(() => {
+                    this.saveData();
+                }, 10000);
+                
+                // Save on page unload
+                window.addEventListener('beforeunload', () => {
+                    this.saveData();
+                });
+            }
+
+            showMessage(message, type) {
+                const messageArea = document.getElementById('messageArea-manual-futures');
+                if (messageArea) {
+                    const messageDiv = document.createElement('div');
+                    messageDiv.className = type;
+                    messageDiv.textContent = message;
+                    
+                    messageArea.innerHTML = '';
+                    messageArea.appendChild(messageDiv);
+                    
+                    setTimeout(() => {
+                        if (messageDiv.parentNode) {
+                            messageDiv.remove();
+                        }
+                    }, 3000);
+                }
+            }
+        }
+
+        // Technical Indicators Calculator
+        class TechnicalIndicators {
+            static calculateRSI(prices, period = 14) {
+                if (prices.length < period + 1) return 50;
+                
+                let gains = [];
+                let losses = [];
+                
+                for (let i = 1; i < prices.length; i++) {
+                    const change = prices[i] - prices[i - 1];
+                    gains.push(change > 0 ? change : 0);
+                    losses.push(change < 0 ? Math.abs(change) : 0);
+                }
+                
+                const avgGain = gains.slice(-period).reduce((a, b) => a + b) / period;
+                const avgLoss = losses.slice(-period).reduce((a, b) => a + b) / period;
+                
+                if (avgLoss === 0) return 100;
+                
+                const rs = avgGain / avgLoss;
+                return 100 - (100 / (1 + rs));
+            }
+
+            static calculateMACD(prices, fastPeriod = 12, slowPeriod = 26, signalPeriod = 9) {
+                if (prices.length < slowPeriod) return { macd: 0, signal: 0, histogram: 0 };
+                
+                const fastEMA = this.calculateEMA(prices, fastPeriod);
+                const slowEMA = this.calculateEMA(prices, slowPeriod);
+                const macd = fastEMA - slowEMA;
+                
+                // Simplified signal calculation
+                const signal = macd * 0.9; // Simplified for demo
+                const histogram = macd - signal;
+                
+                return { macd, signal, histogram };
+            }
+
+            static calculateEMA(prices, period) {
+                if (prices.length === 0) return 0;
+                
+                const multiplier = 2 / (period + 1);
+                let ema = prices[0];
+                
+                for (let i = 1; i < prices.length; i++) {
+                    ema = (prices[i] * multiplier) + (ema * (1 - multiplier));
+                }
+                
+                return ema;
+            }
+
+            static calculateBollingerBands(prices, period = 20, stdDev = 2) {
+                if (prices.length < period) return { upper: 0, middle: 0, lower: 0 };
+                
+                const recentPrices = prices.slice(-period);
+                const sma = recentPrices.reduce((a, b) => a + b) / period;
+                
+                const variance = recentPrices.reduce((sum, price) => sum + Math.pow(price - sma, 2), 0) / period;
+                const standardDeviation = Math.sqrt(variance);
+                
+                return {
+                    upper: sma + (standardDeviation * stdDev),
+                    middle: sma,
+                    lower: sma - (standardDeviation * stdDev)
+                };
+            }
+
+            static updateIndicators(symbol, currentPrice, priceHistory) {
+                const prices = priceHistory.map(item => item.price);
+                
+                // RSI
+                const rsi = this.calculateRSI(prices);
+                const rsiElement = document.getElementById(`rsi-${symbol}`);
+                if (rsiElement) {
+                    rsiElement.textContent = rsi.toFixed(1);
+                    rsiElement.className = `indicator-value ${rsi > 70 ? 'indicator-bearish' : rsi < 30 ? 'indicator-bullish' : 'indicator-neutral'}`;
+                }
+
+                // MACD
+                const macd = this.calculateMACD(prices);
+                const macdElement = document.getElementById(`macd-${symbol}`);
+                if (macdElement) {
+                    macdElement.textContent = macd.macd.toFixed(2);
+                    macdElement.className = `indicator-value ${macd.macd > 0 ? 'indicator-bullish' : 'indicator-bearish'}`;
+                }
+
+                // Bollinger Bands
+                const bb = this.calculateBollingerBands(prices);
+                const bbElement = document.getElementById(`bb-${symbol}`);
+                if (bbElement) {
+                    const position = currentPrice > bb.upper ? 'Overbought' : currentPrice < bb.lower ? 'Oversold' : 'Normal';
+                    bbElement.textContent = position;
+                    bbElement.className = `indicator-value ${position === 'Oversold' ? 'indicator-bullish' : position === 'Overbought' ? 'indicator-bearish' : 'indicator-neutral'}`;
+                }
+
+                // EMA 20
+                const ema20 = this.calculateEMA(prices, 20);
+                const ema20Element = document.getElementById(`ema20-${symbol}`);
+                if (ema20Element) {
+                    ema20Element.textContent = ema20.toFixed(2);
+                    ema20Element.className = `indicator-value ${currentPrice > ema20 ? 'indicator-bullish' : 'indicator-bearish'}`;
+                }
+
+                // Volume (simulated)
+                const volumeElement = document.getElementById(`volume-${symbol}`);
+                if (volumeElement) {
+                    const trend = Math.random() > 0.5 ? 'High' : 'Normal';
+                    volumeElement.textContent = trend;
+                    volumeElement.className = `indicator-value ${trend === 'High' ? 'indicator-bullish' : 'indicator-neutral'}`;
+                }
+            }
+        }
+
+        // DCA Bot Class
+        class DCABot {
+            constructor() {
+                this.isRunning = false;
+                this.symbol = 'BTCUSDT';
+                this.amount = 50;
+                this.frequency = 'daily';
+                this.target = 1000;
+                this.totalInvested = 0;
+                this.totalQuantity = 0;
+                this.averagePrice = 0;
+                this.executions = [];
+                this.nextExecution = null;
+                this.currentPrice = 0;
+                
+                this.init();
+            }
+
+            init() {
+                this.setupEventListeners();
+                this.setDefaultDates();
+                this.loadData();
+                this.getCurrentPrice();
+                this.updateDisplay();
+            }
+
+            setDefaultDates() {
+                const today = new Date();
+                const tomorrow = new Date(today);
+                tomorrow.setDate(tomorrow.getDate() + 1);
+                
+                const startDateElement = document.getElementById('dca-start-date');
+                const endDateElement = document.getElementById('backtest-end');
+                
+                if (startDateElement) {
+                    startDateElement.value = tomorrow.toISOString().split('T')[0];
+                }
+                if (endDateElement) {
+                    endDateElement.value = today.toISOString().split('T')[0];
+                }
+            }
+
+            setupEventListeners() {
+                const startBtn = document.getElementById('startDCA');
+                const stopBtn = document.getElementById('stopDCA');
+                const symbolSelect = document.getElementById('dca-symbol');
+                
+                if (startBtn) startBtn.addEventListener('click', () => this.startDCA());
+                if (stopBtn) stopBtn.addEventListener('click', () => this.stopDCA());
+                if (symbolSelect) {
+                    symbolSelect.addEventListener('change', (e) => {
+                        this.symbol = e.target.value;
+                        this.getCurrentPrice();
+                    });
+                }
+            }
+
+            async getCurrentPrice() {
+                try {
+                    const response = await fetch(`https://api.binance.com/api/v3/ticker/price?symbol=${this.symbol}`);
+                    const data = await response.json();
+                    this.currentPrice = parseFloat(data.price);
+                } catch (error) {
+                    console.error('Error fetching price:', error);
+                }
+            }
+
+            startDCA() {
+                this.amount = parseFloat(document.getElementById('dca-amount').value);
+                this.frequency = document.getElementById('dca-frequency').value;
+                this.target = parseFloat(document.getElementById('dca-target').value);
+                
+                this.isRunning = true;
+                this.scheduleNextExecution();
+                this.updateDisplay();
+                this.showMessage('DCA Bot iniciado correctamente', 'success');
+            }
+
+            stopDCA() {
+                this.isRunning = false;
+                if (this.dcaInterval) {
+                    clearInterval(this.dcaInterval);
+                }
+                this.updateDisplay();
+                this.showMessage('DCA Bot detenido', 'error');
+            }
+
+            scheduleNextExecution() {
+                // Intervalos cortos para demostración
+                const frequencies = {
+                    'daily': 30 * 1000,    // 30 segundos para demo
+                    'weekly': 60 * 1000,   // 1 minuto para demo
+                    'monthly': 120 * 1000,  // 2 minutos para demo
+                    'custom': 15 * 1000    // 15 segundos para demo
+                };
+
+                const interval = frequencies[this.frequency] || frequencies['daily'];
+                
+                this.dcaInterval = setInterval(() => {
+                    if (this.totalInvested < this.target) {
+                        this.executeDCA();
+                    } else {
+                        this.stopDCA();
+                        this.showMessage('Meta DCA alcanzada!', 'success');
+                    }
+                }, interval);
+
+                this.nextExecution = new Date(Date.now() + interval);
+            }
+
+            async executeDCA() {
+                await this.getCurrentPrice();
+                
+                const quantity = this.amount / this.currentPrice;
+                this.totalInvested += this.amount;
+                this.totalQuantity += quantity;
+                this.averagePrice = this.totalInvested / this.totalQuantity;
+
+                this.executions.push({
+                    date: new Date(),
+                    price: this.currentPrice,
+                    amount: this.amount,
+                    quantity: quantity
+                });
+
+                this.updateDisplay();
+                this.saveData();
+                this.showMessage(`DCA ejecutado: ${quantity.toFixed(6)} ${this.symbol.replace('USDT', '')} @ $${this.currentPrice}`, 'success');
+            }
+
+            updateDisplay() {
+                // Safely update text content
+                const elements = {
+                    'dca-status': this.isRunning ? 'Activo' : 'Inactivo',
+                    'dca-progress': `$${this.totalInvested} / $${this.target} (${((this.totalInvested/this.target)*100).toFixed(1)}%)`,
+                    'dca-next-execution': this.nextExecution ? this.nextExecution.toLocaleString() : '--',
+                    'dca-avg-price': this.averagePrice > 0 ? `$${this.averagePrice.toFixed(2)}` : '--',
+                    'dca-total-invested': `$${this.totalInvested.toFixed(2)}`,
+                    'dca-total-quantity': `${this.totalQuantity.toFixed(6)} ${this.symbol.replace('USDT', '')}`
+                };
+
+                Object.entries(elements).forEach(([id, text]) => {
+                    const element = document.getElementById(id);
+                    if (element) element.textContent = text;
+                });
+
+                // Update button states
+                const startBtn = document.getElementById('startDCA');
+                const stopBtn = document.getElementById('stopDCA');
+                
+                if (startBtn && stopBtn) {
+                    startBtn.disabled = this.isRunning;
+                    stopBtn.disabled = !this.isRunning;
+                    
+                    const startIndicator = startBtn.querySelector('.status-indicator');
+                    const stopIndicator = stopBtn.querySelector('.status-indicator');
+                    
+                    if (startIndicator) {
+                        startIndicator.className = `status-indicator ${this.isRunning ? 'status-active' : 'status-inactive'}`;
+                    }
+                    if (stopIndicator) {
+                        stopIndicator.className = `status-indicator ${this.isRunning ? 'status-inactive' : 'status-inactive'}`;
+                    }
+                }
+
+                this.updateExecutionsList();
+            }
+
+            updateExecutionsList() {
+                const container = document.getElementById('dca-executions');
+                
+                if (this.executions.length === 0) {
+                    container.innerHTML = '<div style="text-align: center; color: #bdc3c7; padding: 20px;">No hay ejecuciones aún</div>';
+                    return;
+                }
+
+                container.innerHTML = this.executions.slice(-10).reverse().map(exec => `
+                    <div class="dca-execution dca-completed">
+                        <div>
+                            <strong>${exec.date.toLocaleDateString()}</strong><br>
+                            ${exec.quantity.toFixed(6)} @ $${exec.price.toFixed(2)}
+                        </div>
+                        <div>$${exec.amount.toFixed(2)}</div>
+                    </div>
+                `).join('');
+            }
+
+            loadData() {
+                const data = DataManager.loadData('dcaBotData');
+                if (data) {
+                    this.totalInvested = data.totalInvested || 0;
+                    this.totalQuantity = data.totalQuantity || 0;
+                    this.averagePrice = data.averagePrice || 0;
+                    this.executions = data.executions || [];
+                }
+            }
+
+            saveData() {
+                DataManager.saveData('dcaBotData', {
+                    totalInvested: this.totalInvested,
+                    totalQuantity: this.totalQuantity,
+                    averagePrice: this.averagePrice,
+                    executions: this.executions
+                });
+            }
+
+            showMessage(message, type) {
+                const messageArea = document.getElementById('messageArea-dca');
+                if (messageArea) {
+                    const messageDiv = document.createElement('div');
+                    messageDiv.className = type;
+                    messageDiv.textContent = message;
+                    
+                    messageArea.innerHTML = '';
+                    messageArea.appendChild(messageDiv);
+                    
+                    setTimeout(() => {
+                        if (messageDiv.parentNode) {
+                            messageDiv.remove();
+                        }
+                    }, 3000);
+                }
+            }
+        }
+
+        // Portfolio Manager Class
+        class PortfolioManager {
+            constructor() {
+                // Initialize with zeros - will load from storage if available
+                this.totalValue = 0;
+                this.dailyPnl = 0;
+                this.totalTrades = 0;
+                this.winRate = 0;
+                this.sharpeRatio = 0;
+                this.maxDrawdown = 0;
+                this.manualDataHistory = []; // Array to store manual data entries
+                
+                // Performance metrics
+                this.roiTotal = 0;
+                this.roiAnnual = 0;
+                this.volatility = 0;
+                this.bestTrade = 0;
+                this.worstTrade = 0;
+                this.avgTrade = 0;
+                
+                this.init();
+            }
+
+            init() {
+                this.loadData(); // Load saved data first
+                
+                // Calculate initial portfolio values synchronously
+                this.calculateRealTimePortfolioValuesSync();
+                
+                // Calculate initial performance metrics
+                this.calculatePerformanceMetrics();
+                
+                this.updateMetrics();
+                this.initializeChart();
+                
+                // Update portfolio values every 30 seconds
+                setInterval(() => this.updateMetrics(), 30000);
+                
+                // Update crypto prices every 5 minutes
+                setInterval(async () => {
+                    await this.calculateRealTimePortfolioValues();
+                    this.updateMetrics();
+                }, 300000);
+            }
+
+            loadData() {
+                const savedData = DataManager.loadData('portfolioData');
+                if (savedData && Object.keys(savedData).length > 0) {
+                    // Only load if there's actual data (not empty object from reset)
+                    this.totalValue = savedData.totalValue || 0;
+                    this.dailyPnl = savedData.dailyPnl || 0;
+                    this.totalTrades = savedData.totalTrades || 0;
+                    this.winRate = savedData.winRate || 0;
+                    this.sharpeRatio = savedData.sharpeRatio || 0;
+                    this.maxDrawdown = savedData.maxDrawdown || 0;
+                    this.manualDataHistory = savedData.manualDataHistory || [];
+                    
+                    // Load performance metrics
+                    this.roiTotal = savedData.roiTotal || 0;
+                    this.roiAnnual = savedData.roiAnnual || 0;
+                    this.volatility = savedData.volatility || 0;
+                    this.bestTrade = savedData.bestTrade || 0;
+                    this.worstTrade = savedData.worstTrade || 0;
+                    this.avgTrade = savedData.avgTrade || 0;
+                    
+                    console.log('Portfolio data loaded from storage');
+                } else {
+                    console.log('No portfolio data found, starting with zeros');
+                }
+            }
+
+            saveData() {
+                const dataToSave = {
+                    totalValue: this.totalValue,
+                    dailyPnl: this.dailyPnl,
+                    totalTrades: this.totalTrades,
+                    winRate: this.winRate,
+                    sharpeRatio: this.sharpeRatio,
+                    maxDrawdown: this.maxDrawdown,
+                    manualDataHistory: this.manualDataHistory,
+                    
+                    // Save performance metrics
+                    roiTotal: this.roiTotal,
+                    roiAnnual: this.roiAnnual,
+                    volatility: this.volatility,
+                    bestTrade: this.bestTrade,
+                    worstTrade: this.worstTrade,
+                    avgTrade: this.avgTrade,
+                    
+                    lastSaved: new Date().toISOString()
+                };
+                DataManager.saveData('portfolioData', dataToSave);
+            }
+
+            updateMetrics() {
+                // Calculate real-time portfolio values from crypto investments
+                this.calculateRealTimePortfolioValues();
+                
+                // Calculate performance metrics
+                this.calculatePerformanceMetrics();
+                
+                // Update display elements
+                const totalValueEl = document.getElementById('portfolio-total-value');
+                const dailyPnlEl = document.getElementById('portfolio-daily-pnl');
+                const totalTradesEl = document.getElementById('portfolio-total-trades');
+                const winRateEl = document.getElementById('portfolio-win-rate');
+                const sharpeEl = document.getElementById('portfolio-sharpe');
+                const drawdownEl = document.getElementById('portfolio-drawdown');
+                
+                if (totalValueEl) totalValueEl.textContent = `$${this.totalValue.toFixed(2)}`;
+                if (dailyPnlEl) dailyPnlEl.textContent = `${this.dailyPnl >= 0 ? '+' : ''}$${this.dailyPnl.toFixed(2)}`;
+                if (totalTradesEl) totalTradesEl.textContent = this.totalTrades;
+                if (winRateEl) winRateEl.textContent = `${this.winRate.toFixed(1)}%`;
+                if (sharpeEl) sharpeEl.textContent = this.sharpeRatio.toFixed(2);
+                if (drawdownEl) drawdownEl.textContent = `${this.maxDrawdown.toFixed(1)}%`;
+
+                // Update performance metrics display
+                this.updatePerformanceMetricsDisplay();
+                
+                // Update risk management display
+                this.updateRiskManagementDisplay();
+
+                // Update manual data history display
+                this.updateManualDataHistoryDisplay();
+                
+                // Update holdings display
+                this.updateHoldingsDisplay();
+                
+                // Update current chart to reflect new values
+                this.refreshCurrentChart();
+            }
+
+            setupEventListeners() {
+                // Refresh button
+                const refreshBtn = document.getElementById('refreshPortfolio');
+                if (refreshBtn) {
+                    refreshBtn.addEventListener('click', () => {
+                        console.log('Manual refresh - syncing portfolio and charts...');
+                        this.updateMetrics(); // Esto ahora también actualizará la gráfica
+                        this.showMessage('Portfolio y gráficas actualizadas', 'success');
+                    });
+                }
+
+                // Add Manual Data button
+                const addManualDataBtn = document.getElementById('addManualData');
+                if (addManualDataBtn) {
+                    addManualDataBtn.addEventListener('click', () => this.openManualDataModal());
+                }
+
+                // Reset button - NEW!
+                const resetBtn = document.getElementById('resetPortfolio');
+                if (resetBtn) {
+                    resetBtn.addEventListener('click', () => this.resetPortfolio());
+                }
+
+                // Export button
+                const exportBtn = document.getElementById('exportPortfolio');
+                if (exportBtn) {
+                    exportBtn.addEventListener('click', () => this.exportData());
+                }
+
+                // Chart type buttons - FIXED!
+                const chartBtns = document.querySelectorAll('#portfolio .chart-btn');
+                console.log('Portfolio chart buttons found:', chartBtns.length);
+                chartBtns.forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        console.log('Chart button clicked:', e.target.dataset.chart);
+                        
+                        // Remove active class from all buttons
+                        chartBtns.forEach(b => b.classList.remove('active'));
+                        
+                        // Add active class to clicked button
+                        e.target.classList.add('active');
+                        
+                        // Update chart and show message
+                        const chartType = e.target.dataset.chart;
+                        
+                        // Verificar si hay inversiones para mostrar distribución
+                        if (chartType === 'allocation') {
+                            const history = this.getManualDataHistory();
+                            const cryptoInvestments = history.filter(entry => entry.cryptoInvestment && entry.cryptoInvestment.symbol);
+                            
+                            if (cryptoInvestments.length === 0) {
+                                this.showMessage('No tienes inversiones en criptomonedas para mostrar la distribución', 'info');
+                                // Reactivar el botón anterior
+                                e.target.classList.remove('active');
+                                const activeBtn = document.querySelector('#portfolio .chart-btn.active') || document.querySelector('#portfolio .chart-btn[data-chart="value"]');
+                                if (activeBtn) activeBtn.classList.add('active');
+                                return;
+                            }
+                        }
+                        
+                        this.updateChart(chartType);
+                        this.showMessage(`Gráfico cambiado a: ${chartType}`, 'info');
+                    });
+                    console.log('Listener added for chart type:', btn.dataset.chart);
+                });
+            }
+
+            resetPortfolio() {
+                if (confirm('🗑️ ¿Estás seguro de que quieres reiniciar el portfolio?\n\nEsto pondrá todos los valores en cero y eliminará el historial de datos manuales.\n\n⚠️ Esta acción no se puede deshacer.')) {
+                    console.log('Resetting portfolio...');
+                    
+                    // Reset all values to zero
+                    this.totalValue = 0;
+                    this.dailyPnl = 0;
+                    this.totalTrades = 0;
+                    this.winRate = 0;
+                    this.sharpeRatio = 0;
+                    this.maxDrawdown = 0;
+                    this.manualDataHistory = []; // Clear manual data history
+                    
+                    // Reset performance metrics
+                    this.roiTotal = 0;
+                    this.roiAnnual = 0;
+                    this.volatility = 0;
+                    this.bestTrade = 0;
+                    this.worstTrade = 0;
+                    this.avgTrade = 0;
+
+                    // Save the reset state immediately
+                    this.saveData();
+                    
+                    // Also clear with empty object as backup
+                    localStorage.removeItem('portfolioData');
+                    
+                    // Force update display
+                    this.updateMetrics();
+                    
+                    // Reinitialize chart with zero data
+                    if (this.chart) {
+                        this.chart.destroy();
+                    }
+                    this.updateChart('value');
+                    
+                    this.showMessage('Portfolio reiniciado exitosamente - Todos los datos en cero', 'success');
+                    console.log('Portfolio reset completed - all values set to zero');
+                    console.log('Current values:', {
+                        totalValue: this.totalValue,
+                        dailyPnl: this.dailyPnl,
+                        totalTrades: this.totalTrades,
+                        winRate: this.winRate
+                    });
+                }
+            }
+
+            updateChart(chartType = 'value') {
+                const canvas = document.getElementById('portfolioChart');
+                if (!canvas) {
+                    console.error('Portfolio chart canvas not found');
+                    return;
+                }
+
+                const ctx = canvas.getContext('2d');
+                
+                // Clear existing chart
+                if (this.chart) {
+                    this.chart.destroy();
+                }
+
+                console.log('Creating chart for type:', chartType);
+
+                let chartConfig;
+
+                switch (chartType) {
+                    case 'value':
+                        // Generar datos más llamativos con picos y valles
+                        const valueData = this.generatePortfolioValueData();
+                        
+                        chartConfig = {
+                            type: 'line',
+                            data: {
+                                labels: valueData.labels,
+                                datasets: [{
+                                    label: 'Valor del Portfolio ($)',
+                                    data: valueData.values,
+                                    borderColor: '#3498db',
+                                    backgroundColor: 'rgba(52, 152, 219, 0.15)',
+                                    borderWidth: 3,
+                                    fill: true,
+                                    tension: 0.3,
+                                    pointBackgroundColor: '#3498db',
+                                    pointBorderColor: '#ffffff',
+                                    pointBorderWidth: 2,
+                                    pointRadius: 5,
+                                    pointHoverRadius: 8,
+                                    pointHoverBackgroundColor: '#3498db',
+                                    pointHoverBorderColor: '#ffffff',
+                                    pointHoverBorderWidth: 3,
+                                    shadowColor: 'rgba(52, 152, 219, 0.5)',
+                                    shadowBlur: 10,
+                                    shadowOffsetX: 0,
+                                    shadowOffsetY: 5
+                                }]
+                            }
+                        };
+                        break;
+                    case 'pnl':
+                        // Generar datos realistas de PnL con fluctuaciones
+                        const pnlData = this.generatePnLData();
+                        
+                        chartConfig = {
+                            type: 'line',
+                            data: {
+                                labels: pnlData.labels,
+                                datasets: [{
+                                    label: 'PnL Acumulado ($)',
+                                    data: pnlData.values,
+                                    borderColor: this.dailyPnl >= 0 ? '#2ecc71' : '#e74c3c',
+                                    backgroundColor: this.dailyPnl >= 0 ? 'rgba(46, 204, 113, 0.2)' : 'rgba(231, 76, 60, 0.2)',
+                                    borderWidth: 3,
+                                    fill: true,
+                                    tension: 0.3,
+                                    pointBackgroundColor: pnlData.values.map(val => val >= 0 ? '#2ecc71' : '#e74c3c'),
+                                    pointBorderColor: '#ffffff',
+                                    pointBorderWidth: 2,
+                                    pointRadius: 4,
+                                    pointHoverRadius: 7,
+                                    pointHoverBorderWidth: 3,
+                                    segment: {
+                                        borderColor: ctx => {
+                                            const current = ctx.p1.parsed.y;
+                                            const previous = ctx.p0.parsed.y;
+                                            return current >= previous ? '#2ecc71' : '#e74c3c';
+                                        },
+                                        backgroundColor: ctx => {
+                                            const current = ctx.p1.parsed.y;
+                                            return current >= 0 ? 'rgba(46, 204, 113, 0.2)' : 'rgba(231, 76, 60, 0.2)';
+                                        }
+                                    }
+                                }]
+                            }
+                        };
+                        break;
+                    case 'allocation':
+                        // Obtener datos reales de inversiones
+                        const allocationData = this.getAllocationData();
+                        
+                        chartConfig = {
+                            type: 'doughnut',
+                            data: {
+                                labels: allocationData.labels,
+                                datasets: [{
+                                    data: allocationData.values,
+                                    backgroundColor: allocationData.colors,
+                                    borderWidth: 2,
+                                    borderColor: 'rgba(255, 255, 255, 0.3)',
+                                    hoverBorderWidth: 3,
+                                    hoverBorderColor: 'rgba(255, 255, 255, 0.8)'
+                                }]
+                            }
+                        };
+                        break;
+                    default:
+                        chartType = 'value';
+                        chartConfig = {
+                            type: 'line',
+                            data: {
+                                labels: ['Inicio', 'Ahora'],
+                                datasets: [{
+                                    label: 'Valor del Portfolio ($)',
+                                    data: [2000, this.totalValue],
+                                    borderColor: '#3498db',
+                                    backgroundColor: 'rgba(52, 152, 219, 0.1)',
+                                    borderWidth: 3,
+                                    fill: true,
+                                    tension: 0.4
+                                }]
+                            }
+                        };
+                }
+
+                // Common chart options
+                const commonOptions = {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: {
+                        intersect: false,
+                        mode: 'index'
+                    },
+                    plugins: {
+                        legend: { 
+                            labels: { 
+                                color: '#ecf0f1',
+                                font: {
+                                    size: 14,
+                                    weight: 'bold'
+                                }
+                            }
+                        },
+                        tooltip: {
+                            backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                            titleColor: '#ffffff',
+                            bodyColor: '#ffffff',
+                            borderColor: '#3498db',
+                            borderWidth: 2,
+                            cornerRadius: 10,
+                            displayColors: false,
+                            callbacks: {
+                                title: (tooltipItems) => {
+                                    return tooltipItems[0].label;
+                                },
+                                label: (tooltipItem) => {
+                                    const value = tooltipItem.parsed.y;
+                                    return `${tooltipItem.dataset.label}: $${value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+                                }
+                            }
+                        }
+                    },
+                    animation: {
+                        duration: 2000,
+                        easing: 'easeInOutCubic',
+                        animateRotate: true,
+                        animateScale: true
+                    },
+                    elements: {
+                        point: {
+                            hoverRadius: 8
+                        }
+                    }
+                };
+
+                if (chartType !== 'allocation') {
+                    commonOptions.scales = {
+                        x: {
+                            ticks: { 
+                                color: '#bdc3c7',
+                                font: {
+                                    size: 12,
+                                    weight: '600'
+                                }
+                            },
+                            grid: { 
+                                color: 'rgba(255, 255, 255, 0.1)',
+                                lineWidth: 1
+                            },
+                            border: {
+                                color: 'rgba(255, 255, 255, 0.2)'
+                            }
+                        },
+                        y: {
+                            ticks: { 
+                                color: '#bdc3c7',
+                                font: {
+                                    size: 12,
+                                    weight: '600'
+                                },
+                                callback: function(value) {
+                                    return '$' + value.toLocaleString();
+                                }
+                            },
+                            grid: { 
+                                color: 'rgba(255, 255, 255, 0.1)',
+                                lineWidth: 1
+                            },
+                            border: {
+                                color: 'rgba(255, 255, 255, 0.2)'
+                            },
+                            beginAtZero: chartType === 'pnl' ? false : true
+                        }
+                    };
+                }
+
+                chartConfig.options = commonOptions;
+
+                try {
+                    this.chart = new Chart(ctx, chartConfig);
+                    console.log(`Chart created successfully for type: ${chartType}`);
+                } catch (error) {
+                    console.error('Error creating chart:', error);
+                }
+            }
+
+            exportData() {
+                const exportData = {
+                    totalValue: this.totalValue,
+                    dailyPnl: this.dailyPnl,
+                    totalTrades: this.totalTrades,
+                    winRate: this.winRate,
+                    sharpeRatio: this.sharpeRatio,
+                    maxDrawdown: this.maxDrawdown,
+                    exportDate: new Date().toISOString()
+                };
+
+                const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `portfolio-export-${new Date().getTime()}.json`;
+                a.click();
+                URL.revokeObjectURL(url);
+
+                this.showMessage('Portfolio exportado exitosamente', 'success');
+            }
+
+            showMessage(message, type = 'info') {
+                const messageDiv = document.createElement('div');
+                messageDiv.style.cssText = `
+                    position: fixed;
+                    top: 20px;
+                    right: 20px;
+                    z-index: 9999;
+                    padding: 12px 20px;
+                    border-radius: 8px;
+                    color: white;
+                    font-weight: 600;
+                    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+                    ${type === 'success' ? 'background: linear-gradient(45deg, #27ae60, #2ecc71);' : 
+                      type === 'error' ? 'background: linear-gradient(45deg, #e74c3c, #c0392b);' : 
+                      'background: linear-gradient(45deg, #3498db, #2980b9);'}
+                `;
+                messageDiv.textContent = message;
+                
+                document.body.appendChild(messageDiv);
+                setTimeout(() => {
+                    if (messageDiv.parentNode) {
+                        messageDiv.remove();
+                    }
+                }, 3000);
+            }
+
+            generatePortfolioValueData() {
+                // Usar el valor real del portfolio
+                const currentPortfolioValue = this.totalValue > 0 ? this.totalValue : 0; // Valor actual del portfolio
+                const periods = 15; // Número de puntos de datos
+                
+                const labels = [];
+                const values = [];
+                
+                // Generar etiquetas de tiempo
+                const now = new Date();
+                for (let i = periods - 1; i >= 0; i--) {
+                    const date = new Date(now.getTime() - (i * 24 * 60 * 60 * 1000)); // Días atrás
+                    labels.push(date.toLocaleDateString('es-ES', { 
+                        month: 'short', 
+                        day: 'numeric' 
+                    }));
+                }
+
+                if (currentPortfolioValue === 0) {
+                    labels.forEach(() => values.push(0));
+                    return { labels, values };
+                }
+                
+                // Valor inicial (hace 15 días) - empezar con 80% del valor actual
+                const initialValue = currentPortfolioValue * 0.8;
+                
+                // Calcular incremento base hacia el valor final
+                const baseIncrement = (currentPortfolioValue - initialValue) / (periods - 1);
+                
+                let currentValue = initialValue;
+                
+                for (let i = 0; i < periods; i++) {
+                    // Para el último punto, usar exactamente el valor del portfolio
+                    if (i === periods - 1) {
+                        values.push(currentPortfolioValue);
+                    } else {
+                        // Agregar volatilidad realista pero controlada
+                        const volatility = 0.12; // 12% de volatilidad máxima
+                        const randomFactor = (Math.random() - 0.5) * 2 * volatility;
+                        
+                        // Calcular valor base con tendencia
+                        const baseValue = initialValue + (baseIncrement * i);
+                        
+                        // Aplicar volatilidad al valor base
+                        currentValue = baseValue * (1 + randomFactor);
+                        
+                        // Asegurar que no sea menor a 100 y no se desvíe demasiado del objetivo
+                        currentValue = Math.max(currentValue, 0);
+                        currentValue = Math.min(currentValue, currentPortfolioValue * 1.3);
+                        
+                        values.push(currentValue);
+                    }
+                }
+                
+                console.log('Portfolio Value Chart - Current Total:', currentPortfolioValue, 'Chart End Value:', values[values.length - 1]);
+                
+                return { labels, values };
+            }
+
+            generatePnLData() {
+                // Usar el PnL real del portfolio
+                const currentPnL = this.dailyPnl || 0; // PnL actual del portfolio
+                const periods = 15;
+                const labels = [];
+                const values = [];
+                
+                // Generar etiquetas de tiempo
+                const now = new Date();
+                for (let i = periods - 1; i >= 0; i--) {
+                    const date = new Date(now.getTime() - (i * 24 * 60 * 60 * 1000));
+                    labels.push(date.toLocaleDateString('es-ES', { 
+                        month: 'short', 
+                        day: 'numeric' 
+                    }));
+                }
+                
+                // Valor inicial del PnL (hace 15 días) - empezar desde 0 o un valor menor
+                const initialPnL = currentPnL * 0.3; // Empezar con 30% del PnL actual
+                
+                // Calcular incremento base hacia el PnL final
+                const baseIncrement = (currentPnL - initialPnL) / (periods - 1);
+                
+                for (let i = 0; i < periods; i++) {
+                    // Para el último punto, usar exactamente el PnL del portfolio
+                    if (i === periods - 1) {
+                        values.push(currentPnL);
+                    } else {
+                        // Calcular valor base con tendencia progresiva
+                        const baseValue = initialPnL + (baseIncrement * i);
+                        
+                        // Agregar volatilidad controlada
+                        const volatility = 0.15; // 15% de volatilidad
+                        const maxDaily = Math.abs(currentPnL) * 0.1 || 50; // 10% del PnL total o mínimo 50
+                        const randomFactor = (Math.random() - 0.5) * 2 * volatility * maxDaily;
+                        
+                        const dailyPnL = baseValue + randomFactor;
+                        values.push(dailyPnL);
+                    }
+                }
+                
+                console.log('PnL Chart - Current PnL:', currentPnL, 'Chart End Value:', values[values.length - 1]);
+                
+                return { labels, values };
+            }
+
+            getAllocationData() {
+                const history = this.getManualDataHistory();
+                const cryptoInvestments = history.filter(entry => entry.cryptoInvestment && entry.cryptoInvestment.symbol);
+
+                if (cryptoInvestments.length === 0) {
+                    return {
+                        labels: ['Sin inversiones'],
+                        values: [100],
+                        colors: ['#95a5a6']
+                    };
+                }
+
+                // Agrupar inversiones por símbolo y calcular totales
+                const holdings = {};
+                let totalValue = 0;
+
+                cryptoInvestments.forEach(entry => {
+                    const crypto = entry.cryptoInvestment;
+                    const symbol = crypto.symbol;
+                    const currentValue = crypto.currentValue || (crypto.quantity * crypto.currentPrice) || 0;
+                    
+                    if (!holdings[symbol]) {
+                        holdings[symbol] = 0;
+                    }
+                    
+                    holdings[symbol] += currentValue;
+                    totalValue += currentValue;
+                });
+
+                // Colores para diferentes criptomonedas
+                const cryptoColors = {
+                    'BTCUSDT': '#f39c12',
+                    'ETHUSDT': '#3498db', 
+                    'BNBUSDT': '#f1c40f',
+                    'ADAUSDT': '#2ecc71',
+                    'XRPUSDT': '#9b59b6',
+                    'SOLUSDT': '#e67e22',
+                    'DOGEUSDT': '#f39c12',
+                    'DOTUSDT': '#e91e63',
+                    'MATICUSDT': '#8e44ad',
+                    'LTCUSDT': '#95a5a6'
+                };
+
+                const labels = Object.keys(holdings);
+                const values = labels.map(symbol => 
+                    totalValue > 0 ? ((holdings[symbol] / totalValue) * 100).toFixed(1) : 0
+                );
+                const colors = labels.map(symbol => 
+                    cryptoColors[symbol] || `hsl(${Math.random() * 360}, 70%, 60%)`
+                );
+
+                return {
+                    labels: labels,
+                    values: values,
+                    colors: colors
+                };
+            }
+
+            updateHoldingsDisplay() {
+                const holdingsContainer = document.getElementById('portfolio-holdings');
+                if (!holdingsContainer) return;
+
+                const history = this.getManualDataHistory();
+                const cryptoInvestments = history.filter(entry => entry.cryptoInvestment && entry.cryptoInvestment.symbol);
+
+                if (cryptoInvestments.length === 0) {
+                    holdingsContainer.innerHTML = `
+                        <div style="text-align: center; padding: 40px; color: #bdc3c7;">
+                            <div style="font-size: 48px; margin-bottom: 16px;">💼</div>
+                            <p style="font-size: 18px; margin-bottom: 8px;">No tienes inversiones en criptomonedas</p>
+                            <p style="font-size: 14px;">Agrega datos para ver tus holdings aquí</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                // Agrupar inversiones por símbolo y calcular totales
+                const holdings = {};
+                cryptoInvestments.forEach(entry => {
+                    const crypto = entry.cryptoInvestment;
+                    const symbol = crypto.symbol;
+                    
+                    if (!holdings[symbol]) {
+                        holdings[symbol] = {
+                            symbol: symbol,
+                            totalQuantity: 0,
+                            totalInvestment: 0,
+                            totalCurrentValue: 0,
+                            avgEntryPrice: 0,
+                            currentPrice: crypto.currentPrice || 0,
+                            totalUnrealizedPnl: 0,
+                            entries: []
+                        };
+                    }
+                    
+                    holdings[symbol].totalQuantity += crypto.quantity;
+                    holdings[symbol].totalInvestment += crypto.totalInvestment || (crypto.quantity * crypto.entryPrice);
+                    holdings[symbol].totalCurrentValue += crypto.currentValue || (crypto.quantity * crypto.currentPrice);
+                    holdings[symbol].totalUnrealizedPnl += crypto.unrealizedPnl || 0;
+                    holdings[symbol].entries.push(crypto);
+                });
+
+                // Calcular precio promedio de entrada para cada holding
+                Object.keys(holdings).forEach(symbol => {
+                    const holding = holdings[symbol];
+                    holding.avgEntryPrice = holding.totalInvestment / holding.totalQuantity;
+                });
+
+                holdingsContainer.innerHTML = Object.values(holdings).map(holding => {
+                    const pnlPercentage = holding.totalInvestment > 0 ? 
+                        (holding.totalUnrealizedPnl / holding.totalInvestment) * 100 : 0;
+                    
+                    const pnlClass = holding.totalUnrealizedPnl >= 0 ? '#2ecc71' : '#e74c3c';
+                    const pnlIcon = holding.totalUnrealizedPnl >= 0 ? '📈' : '📉';
+                    const pnlSign = holding.totalUnrealizedPnl >= 0 ? '+' : '';
+                    
+                    return `
+                        <div class="holding-card" style="background: rgba(255, 255, 255, 0.1); border-radius: 12px; padding: 20px; margin-bottom: 16px; border-left: 4px solid #f39c12;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                                <div style="display: flex; align-items: center;">
+                                    <div style="font-size: 32px; margin-right: 16px;">🪙</div>
+                                    <div>
+                                        <h3 style="color: #f39c12; margin: 0; font-size: 20px;">${holding.symbol}</h3>
+                                        <p style="color: #bdc3c7; margin: 0; font-size: 14px;">${holding.totalQuantity.toFixed(6)} monedas</p>
+                                    </div>
+                                </div>
+                                <div style="text-align: right;">
+                                    <div style="font-size: 18px; font-weight: bold; color: #ecf0f1;">
+                                        $${holding.totalCurrentValue.toFixed(2)}
+                                    </div>
+                                    <div style="font-size: 14px; color: ${pnlClass};">
+                                        ${pnlIcon} ${pnlSign}$${Math.abs(holding.totalUnrealizedPnl).toFixed(2)} (${pnlSign}${pnlPercentage.toFixed(2)}%)
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 16px;">
+                                <div>
+                                    <div style="font-size: 12px; color: #95a5a6; margin-bottom: 4px;">PRECIO ENTRADA PROMEDIO</div>
+                                    <div style="font-size: 16px; font-weight: bold; color: #ecf0f1;">$${holding.avgEntryPrice.toFixed(2)}</div>
+                                </div>
+                                <div>
+                                    <div style="font-size: 12px; color: #95a5a6; margin-bottom: 4px;">PRECIO ACTUAL</div>
+                                    <div style="font-size: 16px; font-weight: bold; color: #3498db;">$${holding.currentPrice.toFixed(2)}</div>
+                                </div>
+                                <div>
+                                    <div style="font-size: 12px; color: #95a5a6; margin-bottom: 4px;">INVERSIÓN TOTAL</div>
+                                    <div style="font-size: 16px; font-weight: bold; color: #ecf0f1;">$${holding.totalInvestment.toFixed(2)}</div>
+                                </div>
+                                <div>
+                                    <div style="font-size: 12px; color: #95a5a6; margin-bottom: 4px;"># ENTRADAS</div>
+                                    <div style="font-size: 16px; font-weight: bold; color: #f39c12;">${holding.entries.length}</div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            }
+
+            refreshCurrentChart() {
+                // Detectar qué tipo de gráfica está actualmente activa
+                const activeChartBtn = document.querySelector('#portfolio .chart-btn.active');
+                if (activeChartBtn && activeChartBtn.dataset.chart) {
+                    const currentChartType = activeChartBtn.dataset.chart;
+                    console.log('Refreshing chart:', currentChartType);
+                    this.updateChart(currentChartType);
+                }
+            }
+
+            initializeChart() {
+                this.setupEventListeners();
+                this.updateChart('value');
+            }
+
+            // Manual Data Methods
+            openManualDataModal() {
+                const modal = document.getElementById('manualDataModal');
+                if (modal) {
+                    // Set current date as default
+                    const now = new Date();
+                    const dateTimeLocal = now.toISOString().slice(0, 16);
+                    const dateInput = document.getElementById('manualDate');
+                    if (dateInput) {
+                        dateInput.value = dateTimeLocal;
+                    }
+                    
+                    // Pre-fill with current values if they exist
+                    const totalValueInput = document.getElementById('manualTotalValue');
+                    const dailyPnlInput = document.getElementById('manualDailyPnl');
+                    const totalTradesInput = document.getElementById('manualTotalTrades');
+                    const winRateInput = document.getElementById('manualWinRate');
+                    const sharpeInput = document.getElementById('manualSharpeRatio');
+                    const drawdownInput = document.getElementById('manualMaxDrawdown');
+                    
+                    if (totalValueInput && this.totalValue > 0) totalValueInput.value = this.totalValue.toFixed(2);
+                    if (dailyPnlInput && this.dailyPnl !== 0) dailyPnlInput.value = this.dailyPnl.toFixed(2);
+                    if (totalTradesInput && this.totalTrades > 0) totalTradesInput.value = this.totalTrades;
+                    if (winRateInput && this.winRate > 0) winRateInput.value = this.winRate.toFixed(1);
+                    if (sharpeInput && this.sharpeRatio !== 0) sharpeInput.value = this.sharpeRatio.toFixed(2);
+                    if (drawdownInput && this.maxDrawdown > 0) drawdownInput.value = this.maxDrawdown.toFixed(1);
+                    
+                    modal.style.display = 'flex';
+                }
+            }
+
+            closeManualDataModal() {
+                const modal = document.getElementById('manualDataModal');
+                if (modal) {
+                    modal.style.display = 'none';
+                    // Clear form
+                    const form = modal.querySelector('.modal-body');
+                    if (form) {
+                        const inputs = form.querySelectorAll('input, textarea');
+                        inputs.forEach(input => {
+                            if (input.type !== 'datetime-local') {
+                                input.value = '';
+                            }
+                        });
+                    }
+                }
+            }
+
+            saveManualData() {
+                // Get crypto investment data
+                const cryptoSymbol = document.getElementById('cryptoSymbol')?.value || '';
+                const cryptoQuantity = parseFloat(document.getElementById('cryptoQuantity')?.value) || 0;
+                const entryPrice = parseFloat(document.getElementById('entryPrice')?.value) || 0;
+                const currentPrice = parseFloat(document.getElementById('currentPrice')?.value) || 0;
+                const totalInvestment = parseFloat(document.getElementById('totalInvestment')?.value) || 0;
+                const currentValue = parseFloat(document.getElementById('currentValue')?.value) || 0;
+                const unrealizedPnl = parseFloat(document.getElementById('unrealizedPnl')?.value) || 0;
+
+                // Get portfolio summary data
+                const totalValue = parseFloat(document.getElementById('manualTotalValue')?.value) || 0;
+                const dailyPnl = parseFloat(document.getElementById('manualDailyPnl')?.value) || 0;
+                const totalTrades = parseInt(document.getElementById('manualTotalTrades')?.value) || 0;
+                const winRate = parseFloat(document.getElementById('manualWinRate')?.value) || 0;
+                const sharpeRatio = parseFloat(document.getElementById('manualSharpeRatio')?.value) || 0;
+                const maxDrawdown = parseFloat(document.getElementById('manualMaxDrawdown')?.value) || 0;
+                const date = document.getElementById('manualDate')?.value || new Date().toISOString();
+                const notes = document.getElementById('manualNotes')?.value || '';
+
+                // Validate required fields
+                if (totalValue <= 0) {
+                    this.showMessage('El valor total del portfolio debe ser mayor a 0', 'error');
+                    return;
+                }
+
+                // Create manual data entry with crypto info
+                const manualEntry = {
+                    id: Date.now(),
+                    totalValue: totalValue,
+                    dailyPnl: dailyPnl,
+                    totalTrades: totalTrades,
+                    winRate: winRate,
+                    sharpeRatio: sharpeRatio,
+                    maxDrawdown: maxDrawdown,
+                    date: date,
+                    notes: notes,
+                    timestamp: new Date().toISOString(),
+                    
+                    // Crypto investment data
+                    cryptoInvestment: {
+                        symbol: cryptoSymbol,
+                        quantity: cryptoQuantity,
+                        entryPrice: entryPrice,
+                        currentPrice: currentPrice,
+                        totalInvestment: totalInvestment,
+                        currentValue: currentValue,
+                        unrealizedPnl: unrealizedPnl
+                    }
+                };
+
+                // Add to history
+                this.manualDataHistory.push(manualEntry);
+
+                // Update current portfolio values
+                this.totalValue = totalValue;
+                this.dailyPnl = dailyPnl;
+                this.totalTrades = totalTrades;
+                this.winRate = winRate;
+                this.sharpeRatio = sharpeRatio;
+                this.maxDrawdown = maxDrawdown;
+
+                // Save data
+                this.saveData();
+                
+                // Update portfolio values in real-time
+                this.calculateRealTimePortfolioValuesSync();
+                
+                // Recalculate performance metrics
+                this.calculatePerformanceMetrics();
+                
+                // Update all displays
+                this.updateMetrics(); // Esto ya actualizará la gráfica activa automáticamente
+
+                // Close modal
+                this.closeManualDataModal();
+
+                this.showMessage('Datos manuales guardados exitosamente', 'success');
+                console.log('Manual data saved:', manualEntry);
+            }
+
+            getManualDataHistory() {
+                return this.manualDataHistory.sort((a, b) => new Date(b.date) - new Date(a.date));
+            }
+
+            deleteManualDataEntry(entryId) {
+                const index = this.manualDataHistory.findIndex(entry => entry.id === entryId);
+                if (index !== -1) {
+                    this.manualDataHistory.splice(index, 1);
+                    this.saveData();
+                    this.showMessage('Entrada de datos eliminada', 'success');
+                    return true;
+                }
+                return false;
+            }
+
+            updateManualDataHistoryDisplay() {
+                const historyContainer = document.getElementById('manual-data-history');
+                if (!historyContainer) return;
+
+                const history = this.getManualDataHistory();
+                
+                if (history.length === 0) {
+                    historyContainer.innerHTML = `
+                        <div style="text-align: center; color: #bdc3c7; padding: 20px;">
+                            No hay datos manuales registrados
+                        </div>
+                    `;
+                    return;
+                }
+
+                // Show only the 3 most recent entries
+                const recentEntries = history.slice(0, 3);
+                
+                historyContainer.innerHTML = recentEntries.map(entry => {
+                    const date = new Date(entry.date).toLocaleDateString('es-ES', {
+                        year: 'numeric',
+                        month: 'short',
+                        day: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                    });
+                    
+                    const pnlClass = entry.dailyPnl >= 0 ? 'pnl-positive' : 'pnl-negative';
+                    const pnlSign = entry.dailyPnl >= 0 ? '+' : '';
+                    
+                    // Add crypto info if available
+                    let cryptoInfo = '';
+                    if (entry.cryptoInvestment && entry.cryptoInvestment.symbol) {
+                        const crypto = entry.cryptoInvestment;
+                        const cryptoPnlClass = crypto.unrealizedPnl >= 0 ? 'pnl-positive' : 'pnl-negative';
+                        const cryptoPnlSign = crypto.unrealizedPnl >= 0 ? '+' : '';
+                        
+                        cryptoInfo = `
+                            <div style="margin-top: 8px; padding: 8px; background: rgba(52, 152, 219, 0.1); border-radius: 6px; border-left: 3px solid #3498db;">
+                                <div style="font-size: 12px; color: #3498db; margin-bottom: 4px;">
+                                    🪙 ${crypto.symbol} | ${crypto.quantity} monedas
+                                </div>
+                                <div style="font-size: 11px; color: #bdc3c7;">
+                                    Entrada: $${crypto.entryPrice} | Actual: $${crypto.currentPrice}
+                                </div>
+                                <div style="font-size: 12px; font-weight: bold; ${cryptoPnlClass}; margin-top: 4px;">
+                                    ${cryptoPnlSign}$${crypto.unrealizedPnl.toFixed(2)} (${((crypto.unrealizedPnl / crypto.totalInvestment) * 100).toFixed(2)}%)
+                                </div>
+                            </div>
+                        `;
+                    }
+                    
+                    return `
+                        <div class="holding-item">
+                            <div class="holding-info">
+                                <div class="holding-icon" style="background: linear-gradient(135deg, #3498db, #2980b9);">📊</div>
+                                <div class="holding-details">
+                                    <h4>${date}</h4>
+                                    <p>Valor: $${entry.totalValue.toFixed(2)} | Trades: ${entry.totalTrades}</p>
+                                    ${cryptoInfo}
+                                </div>
+                            </div>
+                            <div class="holding-value">
+                                <div class="holding-amount ${pnlClass}">${pnlSign}$${entry.dailyPnl.toFixed(2)}</div>
+                                <div class="holding-percentage">Win Rate: ${entry.winRate.toFixed(1)}%</div>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+
+                // Add "View All" message if there are more entries
+                if (history.length > 3) {
+                    historyContainer.innerHTML += `
+                        <div style="text-align: center; color: #3498db; padding: 10px; font-size: 12px;">
+                            +${history.length - 3} entradas más. Haz clic en "Ver Todo" para ver el historial completo.
+                        </div>
+                    `;
+                }
+            }
+
+            // Performance Metrics Calculation Methods
+            calculatePerformanceMetrics() {
+                const history = this.getManualDataHistory();
+                
+                if (history.length === 0) {
+                    // Use current values if no history
+                    this.calculateMetricsFromCurrentValues();
+                    return;
+                }
+
+                // Calculate from historical data
+                this.calculateMetricsFromHistory(history);
+            }
+
+            calculateMetricsFromCurrentValues() {
+                // Calculate ROI Total (use current value as baseline when no history exists)
+                const initialInvestment = this.totalValue > 0 ? this.totalValue : 0;
+                this.roiTotal = initialInvestment > 0 ? ((this.totalValue - initialInvestment) / initialInvestment) * 100 : 0;
+                
+                // Calculate Annualized ROI (assuming 1 year period)
+                this.roiAnnual = this.roiTotal;
+                
+                // Calculate Sharpe Ratio (simplified)
+                this.sharpeRatio = this.calculateSharpeRatio();
+                
+                // Calculate Max Drawdown
+                this.maxDrawdown = this.calculateMaxDrawdown();
+                
+                // Calculate Volatility
+                this.volatility = this.calculateVolatility();
+                
+                // Calculate Best/Worst/Average Trade
+                this.bestTrade = this.dailyPnl > 0 ? this.dailyPnl : 0;
+                this.worstTrade = this.dailyPnl < 0 ? this.dailyPnl : 0;
+                this.avgTrade = this.totalTrades > 0 ? this.dailyPnl / this.totalTrades : 0;
+            }
+
+            calculateMetricsFromHistory(history) {
+                if (history.length < 2) {
+                    this.calculateMetricsFromCurrentValues();
+                    return;
+                }
+
+                // Sort by date
+                const sortedHistory = history.sort((a, b) => new Date(a.date) - new Date(b.date));
+                
+                // Calculate ROI Total
+                const firstEntry = sortedHistory[0];
+                const lastEntry = sortedHistory[sortedHistory.length - 1];
+                const initialValue = firstEntry.totalValue;
+                const finalValue = lastEntry.totalValue;
+                this.roiTotal = ((finalValue - initialValue) / initialValue) * 100;
+                
+                // Calculate Annualized ROI
+                const firstDate = new Date(firstEntry.date);
+                const lastDate = new Date(lastEntry.date);
+                const yearsDiff = (lastDate - firstDate) / (1000 * 60 * 60 * 24 * 365.25);
+                this.roiAnnual = yearsDiff > 0 ? Math.pow((1 + this.roiTotal / 100), 1 / yearsDiff) - 1 : this.roiTotal;
+                this.roiAnnual *= 100;
+                
+                // Calculate Sharpe Ratio
+                this.sharpeRatio = this.calculateSharpeRatioFromHistory(sortedHistory);
+                
+                // Calculate Max Drawdown
+                this.maxDrawdown = this.calculateMaxDrawdownFromHistory(sortedHistory);
+                
+                // Calculate Volatility
+                this.volatility = this.calculateVolatilityFromHistory(sortedHistory);
+                
+                // Calculate Best/Worst/Average Trade
+                const pnlValues = sortedHistory.map(entry => entry.dailyPnl);
+                this.bestTrade = Math.max(...pnlValues);
+                this.worstTrade = Math.min(...pnlValues);
+                this.avgTrade = pnlValues.reduce((sum, val) => sum + val, 0) / pnlValues.length;
+            }
+
+            calculateSharpeRatio() {
+                // Simplified Sharpe Ratio calculation
+                if (this.dailyPnl === 0 || this.volatility === 0) return 0;
+                const riskFreeRate = 0.02; // 2% annual risk-free rate
+                return ((this.dailyPnl * 365 - riskFreeRate) / this.volatility);
+            }
+
+            calculateSharpeRatioFromHistory(history) {
+                if (history.length < 2) return 0;
+                
+                const returns = [];
+                for (let i = 1; i < history.length; i++) {
+                    const prevValue = history[i-1].totalValue;
+                    const currValue = history[i].totalValue;
+                    const dailyReturn = (currValue - prevValue) / prevValue;
+                    returns.push(dailyReturn);
+                }
+                
+                const avgReturn = returns.reduce((sum, ret) => sum + ret, 0) / returns.length;
+                const variance = returns.reduce((sum, ret) => sum + Math.pow(ret - avgReturn, 2), 0) / returns.length;
+                const stdDev = Math.sqrt(variance);
+                
+                if (stdDev === 0) return 0;
+                
+                const riskFreeRate = 0.02 / 365; // Daily risk-free rate
+                return (avgReturn - riskFreeRate) / stdDev;
+            }
+
+            calculateMaxDrawdown() {
+                // Simplified max drawdown calculation
+                return this.maxDrawdown || 0;
+            }
+
+            calculateMaxDrawdownFromHistory(history) {
+                if (history.length < 2) return 0;
+                
+                let maxValue = history[0].totalValue;
+                let maxDrawdown = 0;
+                
+                for (const entry of history) {
+                    if (entry.totalValue > maxValue) {
+                        maxValue = entry.totalValue;
+                    }
+                    
+                    const drawdown = (maxValue - entry.totalValue) / maxValue * 100;
+                    if (drawdown > maxDrawdown) {
+                        maxDrawdown = drawdown;
+                    }
+                }
+                
+                return maxDrawdown;
+            }
+
+            calculateVolatility() {
+                // Simplified volatility calculation
+                return this.volatility || 0;
+            }
+
+            calculateVolatilityFromHistory(history) {
+                if (history.length < 2) return 0;
+                
+                const returns = [];
+                for (let i = 1; i < history.length; i++) {
+                    const prevValue = history[i-1].totalValue;
+                    const currValue = history[i].totalValue;
+                    const dailyReturn = (currValue - prevValue) / prevValue;
+                    returns.push(dailyReturn);
+                }
+                
+                const avgReturn = returns.reduce((sum, ret) => sum + ret, 0) / returns.length;
+                const variance = returns.reduce((sum, ret) => sum + Math.pow(ret - avgReturn, 2), 0) / returns.length;
+                const stdDev = Math.sqrt(variance);
+                
+                // Convert to annualized volatility
+                return stdDev * Math.sqrt(365) * 100;
+            }
+
+            // Real-time portfolio calculation methods
+            async calculateRealTimePortfolioValues() {
+                const history = this.getManualDataHistory();
+                let totalPortfolioValue = 0;
+                let totalUnrealizedPnl = 0;
+                let hasCryptoInvestments = false;
+
+                // Calculate from crypto investments
+                for (const entry of history) {
+                    if (entry.cryptoInvestment && entry.cryptoInvestment.symbol) {
+                        hasCryptoInvestments = true;
+                        
+                        try {
+                            // Get current price from Binance API
+                            const response = await fetch(`https://api.binance.com/api/v3/ticker/price?symbol=${entry.cryptoInvestment.symbol}`);
+                            const data = await response.json();
+                            
+                            if (data.price) {
+                                const currentPrice = parseFloat(data.price);
+                                const quantity = entry.cryptoInvestment.quantity;
+                                const entryPrice = entry.cryptoInvestment.entryPrice;
+                                
+                                // Calculate current value
+                                const currentValue = quantity * currentPrice;
+                                const unrealizedPnl = currentValue - (quantity * entryPrice);
+                                
+                                // Update entry with current data
+                                entry.cryptoInvestment.currentPrice = currentPrice;
+                                entry.cryptoInvestment.currentValue = currentValue;
+                                entry.cryptoInvestment.unrealizedPnl = unrealizedPnl;
+                                
+                                // Add to totals
+                                totalPortfolioValue += currentValue;
+                                totalUnrealizedPnl += unrealizedPnl;
+                            }
+                        } catch (error) {
+                            console.error(`Error fetching price for ${entry.cryptoInvestment.symbol}:`, error);
+                            // Use stored values if API fails
+                            totalPortfolioValue += entry.cryptoInvestment.currentValue || 0;
+                            totalUnrealizedPnl += entry.cryptoInvestment.unrealizedPnl || 0;
+                        }
+                    }
+                }
+
+                // If no crypto investments, use manual values
+                if (!hasCryptoInvestments) {
+                    totalPortfolioValue = this.totalValue;
+                    totalUnrealizedPnl = this.dailyPnl;
+                }
+
+                // Update portfolio values
+                this.totalValue = totalPortfolioValue;
+                this.dailyPnl = totalUnrealizedPnl;
+
+                // Save updated data
+                this.saveData();
+            }
+
+            // Synchronous version for immediate updates
+            calculateRealTimePortfolioValuesSync() {
+                const history = this.getManualDataHistory();
+                let totalPortfolioValue = 0;
+                let totalUnrealizedPnl = 0;
+                let hasCryptoInvestments = false;
+
+                // Calculate from stored crypto data (without API calls)
+                for (const entry of history) {
+                    if (entry.cryptoInvestment && entry.cryptoInvestment.symbol) {
+                        hasCryptoInvestments = true;
+                        totalPortfolioValue += entry.cryptoInvestment.currentValue || 0;
+                        totalUnrealizedPnl += entry.cryptoInvestment.unrealizedPnl || 0;
+                    }
+                }
+
+                // If no crypto investments, use manual values
+                if (!hasCryptoInvestments) {
+                    totalPortfolioValue = this.totalValue;
+                    totalUnrealizedPnl = this.dailyPnl;
+                }
+
+                // Update portfolio values
+                this.totalValue = totalPortfolioValue;
+                this.dailyPnl = totalUnrealizedPnl;
+            }
+
+            updatePerformanceMetricsDisplay() {
+                // Update ROI Total
+                const roiTotalEl = document.getElementById('portfolio-roi-total');
+                if (roiTotalEl) {
+                    roiTotalEl.textContent = `${this.roiTotal ? this.roiTotal.toFixed(2) : '0.00'}%`;
+                }
+
+                // Update ROI Annualized
+                const roiAnnualEl = document.getElementById('portfolio-roi-annual');
+                if (roiAnnualEl) {
+                    roiAnnualEl.textContent = `${this.roiAnnual ? this.roiAnnual.toFixed(2) : '0.00'}%`;
+                }
+
+                // Update Sharpe Ratio
+                const sharpeEl = document.getElementById('portfolio-sharpe');
+                if (sharpeEl) {
+                    sharpeEl.textContent = this.sharpeRatio ? this.sharpeRatio.toFixed(2) : '0.00';
+                }
+
+                // Update Max Drawdown
+                const drawdownEl = document.getElementById('portfolio-drawdown');
+                if (drawdownEl) {
+                    drawdownEl.textContent = `${this.maxDrawdown ? this.maxDrawdown.toFixed(1) : '0.0'}%`;
+                }
+
+                // Update Volatility
+                const volatilityEl = document.getElementById('portfolio-volatility');
+                if (volatilityEl) {
+                    volatilityEl.textContent = `${this.volatility ? this.volatility.toFixed(2) : '0.00'}%`;
+                }
+
+                // Update Best Trade
+                const bestTradeEl = document.getElementById('portfolio-best-trade');
+                if (bestTradeEl) {
+                    bestTradeEl.textContent = `$${this.bestTrade ? this.bestTrade.toFixed(2) : '0.00'}`;
+                }
+
+                // Update Worst Trade
+                const worstTradeEl = document.getElementById('portfolio-worst-trade');
+                if (worstTradeEl) {
+                    worstTradeEl.textContent = `$${this.worstTrade ? this.worstTrade.toFixed(2) : '0.00'}`;
+                }
+
+                // Update Average Trade
+                const avgTradeEl = document.getElementById('portfolio-avg-trade');
+                if (avgTradeEl) {
+                    avgTradeEl.textContent = `$${this.avgTrade ? this.avgTrade.toFixed(2) : '0.00'}`;
+                }
+            }
+
+            updateRiskManagementDisplay() {
+                // Calculate risk level based on volatility and drawdown
+                let riskLevel = 'Bajo';
+                let riskGaugeWidth = 25;
+                
+                if (this.volatility > 30 || this.maxDrawdown > 20) {
+                    riskLevel = 'Alto';
+                    riskGaugeWidth = 85;
+                } else if (this.volatility > 15 || this.maxDrawdown > 10) {
+                    riskLevel = 'Moderado';
+                    riskGaugeWidth = 60;
+                }
+
+                // Update Risk Level
+                const riskLevelEl = document.getElementById('risk-level-value');
+                if (riskLevelEl) {
+                    riskLevelEl.textContent = riskLevel;
+                }
+
+                const riskGaugeEl = document.getElementById('risk-level-gauge');
+                if (riskGaugeEl) {
+                    const gaugeFill = riskGaugeEl.querySelector('.gauge-fill');
+                    if (gaugeFill) {
+                        gaugeFill.style.width = `${riskGaugeWidth}%`;
+                    }
+                }
+
+                // Calculate diversification score based on number of trades and consistency
+                let diversificationScore = 0;
+                if (this.totalTrades > 0) {
+                    // Base score from number of trades
+                    diversificationScore += Math.min(this.totalTrades * 2, 40);
+                    
+                    // Bonus for consistent performance (low volatility)
+                    if (this.volatility < 10) diversificationScore += 20;
+                    if (this.volatility < 5) diversificationScore += 15;
+                    
+                    // Bonus for good win rate
+                    if (this.winRate > 60) diversificationScore += 15;
+                    if (this.winRate > 70) diversificationScore += 10;
+                }
+                
+                diversificationScore = Math.min(diversificationScore, 100);
+
+                // Update Diversification
+                const diversificationEl = document.getElementById('diversification-value');
+                if (diversificationEl) {
+                    diversificationEl.textContent = `${diversificationScore}/100`;
+                }
+
+                const diversificationGaugeEl = document.getElementById('diversification-gauge');
+                if (diversificationGaugeEl) {
+                    const gaugeFill = diversificationGaugeEl.querySelector('.gauge-fill');
+                    if (gaugeFill) {
+                        gaugeFill.style.width = `${diversificationScore}%`;
+                    }
+                }
+
+                // Calculate exposure based on current portfolio value vs initial
+                const initialInvestment = 1000;
+                const exposure = this.totalValue > 0 ? (this.totalValue / initialInvestment) * 100 : 0;
+
+                // Update Exposure
+                const exposureEl = document.getElementById('exposure-value');
+                if (exposureEl) {
+                    exposureEl.textContent = `${exposure.toFixed(0)}%`;
+                }
+
+                const exposureGaugeEl = document.getElementById('exposure-gauge');
+                if (exposureGaugeEl) {
+                    const gaugeFill = exposureGaugeEl.querySelector('.gauge-fill');
+                    if (gaugeFill) {
+                        gaugeFill.style.width = `${Math.min(exposure, 100)}%`;
+                    }
+                }
+            }
+
+            showAllManualData() {
+                const history = this.getManualDataHistory();
+                
+                if (history.length === 0) {
+                    this.showMessage('No hay datos manuales para mostrar', 'info');
+                    return;
+                }
+
+                // Create a modal to show all data
+                const modal = document.createElement('div');
+                modal.className = 'modal-overlay';
+                modal.style.display = 'flex';
+                
+                const tableRows = history.map(entry => {
+                    const date = new Date(entry.date).toLocaleDateString('es-ES', {
+                        year: 'numeric',
+                        month: 'short',
+                        day: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                    });
+                    
+                    const pnlClass = entry.dailyPnl >= 0 ? 'pnl-positive' : 'pnl-negative';
+                    const pnlSign = entry.dailyPnl >= 0 ? '+' : '';
+                    
+                    return `
+                        <tr>
+                            <td>${date}</td>
+                            <td>$${entry.totalValue.toFixed(2)}</td>
+                            <td class="${pnlClass}">${pnlSign}$${entry.dailyPnl.toFixed(2)}</td>
+                            <td>${entry.totalTrades}</td>
+                            <td>${entry.winRate.toFixed(1)}%</td>
+                            <td>${entry.sharpeRatio.toFixed(2)}</td>
+                            <td>${entry.maxDrawdown.toFixed(1)}%</td>
+                            <td>
+                                <button onclick="deleteManualDataEntry(${entry.id})" style="padding: 4px 8px; background: #e74c3c; border: none; border-radius: 4px; color: white; cursor: pointer; font-size: 12px;">🗑️</button>
+                            </td>
+                        </tr>
+                    `;
+                }).join('');
+
+                modal.innerHTML = `
+                    <div class="modal-content" style="max-width: 900px; max-height: 80vh;">
+                        <div class="modal-header">
+                            <h3>📊 Historial Completo de Datos Manuales</h3>
+                            <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">×</button>
+                        </div>
+                        <div class="modal-body" style="overflow-x: auto;">
+                            <table style="width: 100%; border-collapse: collapse; color: white; font-size: 14px;">
+                                <thead>
+                                    <tr style="background: rgba(255,255,255,0.1);">
+                                        <th style="padding: 12px; text-align: left; border-bottom: 1px solid rgba(255,255,255,0.2);">Fecha</th>
+                                        <th style="padding: 12px; text-align: left; border-bottom: 1px solid rgba(255,255,255,0.2);">Valor Total</th>
+                                        <th style="padding: 12px; text-align: left; border-bottom: 1px solid rgba(255,255,255,0.2);">PnL Diario</th>
+                                        <th style="padding: 12px; text-align: left; border-bottom: 1px solid rgba(255,255,255,0.2);">Trades</th>
+                                        <th style="padding: 12px; text-align: left; border-bottom: 1px solid rgba(255,255,255,0.2);">Win Rate</th>
+                                        <th style="padding: 12px; text-align: left; border-bottom: 1px solid rgba(255,255,255,0.2);">Sharpe</th>
+                                        <th style="padding: 12px; text-align: left; border-bottom: 1px solid rgba(255,255,255,0.2);">Drawdown</th>
+                                        <th style="padding: 12px; text-align: left; border-bottom: 1px solid rgba(255,255,255,0.2);">Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${tableRows}
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="modal-footer">
+                            <button class="btn-start" onclick="exportManualDataHistory()">📊 Exportar</button>
+                            <button class="btn-stop" onclick="this.closest('.modal-overlay').remove()">❌ Cerrar</button>
+                        </div>
+                    </div>
+                `;
+                
+                document.body.appendChild(modal);
+            }
+        }
+
+        // Alerts System Class
+        class AlertsSystem {
+            constructor() {
+                this.alerts = [];
+                this.activeCount = 2;
+                this.triggeredToday = 5;
+                this.totalCount = 24;
+                
+                this.init();
+            }
+
+            init() {
+                this.setupEventListeners();
+                this.loadData();
+                this.updateDisplay();
+                this.startPriceMonitoring();
+            }
+
+            setupEventListeners() {
+                const createBtn = document.getElementById('createAlert');
+                const testBtn = document.getElementById('testAlert');
+                
+                if (createBtn) createBtn.addEventListener('click', () => this.createAlert());
+                if (testBtn) testBtn.addEventListener('click', () => this.testAlert());
+                
+                // Agregar event listeners para los botones de tipo de alerta
+                const alertTypeBtns = document.querySelectorAll('[data-alert]');
+                alertTypeBtns.forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        // Remover active de todos los botones
+                        alertTypeBtns.forEach(b => b.classList.remove('active'));
+                        // Agregar active al botón clickeado
+                        e.target.classList.add('active');
+                        // Mostrar formulario correspondiente
+                        this.showAlertForm(e.target.dataset.alert);
+                    });
+                });
+            }
+
+            showAlertForm(alertType) {
+                // Ocultar todos los formularios
+                const forms = ['price-alert-form', 'indicator-alert-form', 'volume-alert-form'];
+                forms.forEach(formId => {
+                    const form = document.getElementById(formId);
+                    if (form) form.style.display = 'none';
+                });
+                
+                // Mostrar el formulario correspondiente
+                const targetForm = document.getElementById(`${alertType}-alert-form`);
+                if (targetForm) {
+                    targetForm.style.display = 'block';
+                }
+            }
+
+            createAlert() {
+                // Obtener el tipo de alerta activo
+                const activeTypeBtn = document.querySelector('[data-alert].active');
+                if (!activeTypeBtn) {
+                    this.showMessage('Error: No se pudo determinar el tipo de alerta', 'error');
+                    return;
+                }
+                
+                const alertType = activeTypeBtn.dataset.alert;
+                const symbolElement = document.getElementById('alert-symbol');
+                const messageElement = document.getElementById('alert-message');
+                
+                if (!symbolElement) {
+                    console.error('Symbol element not found');
+                    return;
+                }
+                
+                const symbol = symbolElement.value;
+                const message = messageElement ? messageElement.value : '';
+
+                let alertData = {
+                    id: Date.now(),
+                    symbol: symbol,
+                    type: alertType,
+                    message: message,
+                    created: new Date(),
+                    triggered: false
+                };
+
+                // Configurar datos según el tipo de alerta
+                if (alertType === 'price') {
+                    const conditionElement = document.getElementById('alert-condition');
+                    const valueElement = document.getElementById('alert-value');
+                    
+                    if (!conditionElement || !valueElement) {
+                        this.showMessage('Por favor completa todos los campos de precio', 'error');
+                        return;
+                    }
+                    
+                    const value = parseFloat(valueElement.value);
+                    if (!value || value <= 0) {
+                        this.showMessage('Por favor ingresa un valor de precio válido', 'error');
+                        return;
+                    }
+                    
+                    alertData.condition = conditionElement.value;
+                    alertData.value = value;
+                    
+                } else if (alertType === 'indicator') {
+                    const indicatorElement = document.getElementById('alert-indicator');
+                    const periodElement = document.getElementById('alert-indicator-period');
+                    const conditionElement = document.getElementById('alert-indicator-condition');
+                    const valueElement = document.getElementById('alert-indicator-value');
+                    
+                    if (!indicatorElement || !periodElement || !conditionElement || !valueElement) {
+                        this.showMessage('Por favor completa todos los campos del indicador', 'error');
+                        return;
+                    }
+                    
+                    const value = parseFloat(valueElement.value);
+                    const period = parseInt(periodElement.value);
+                    
+                    if (!value || isNaN(value)) {
+                        this.showMessage('Por favor ingresa un valor de indicador válido', 'error');
+                        return;
+                    }
+                    
+                    if (!period || period < 1) {
+                        this.showMessage('Por favor ingresa un período válido', 'error');
+                        return;
+                    }
+                    
+                    alertData.indicator = indicatorElement.value;
+                    alertData.period = period;
+                    alertData.condition = conditionElement.value;
+                    alertData.value = value;
+                    
+                } else if (alertType === 'volume') {
+                    const conditionElement = document.getElementById('alert-volume-condition');
+                    const valueElement = document.getElementById('alert-volume-value');
+                    const timeframeElement = document.getElementById('alert-volume-timeframe');
+                    
+                    if (!conditionElement || !valueElement || !timeframeElement) {
+                        this.showMessage('Por favor completa todos los campos de volumen', 'error');
+                        return;
+                    }
+                    
+                    const value = parseFloat(valueElement.value);
+                    if (!value || value <= 0) {
+                        this.showMessage('Por favor ingresa un valor de volumen válido', 'error');
+                        return;
+                    }
+                    
+                    alertData.condition = conditionElement.value;
+                    alertData.value = value;
+                    alertData.timeframe = timeframeElement.value;
+                }
+
+                this.alerts.push(alertData);
+                this.activeCount++;
+                this.totalCount++;
+                
+                this.updateDisplay();
+                this.saveData();
+                this.showMessage(`Alerta de ${alertType} creada correctamente`, 'success');
+            }
+
+            testAlert() {
+                this.playAlertSound();
+                if (Notification.permission === 'granted') {
+                    new Notification('Test Alert', {
+                        body: 'Esta es una alerta de prueba',
+                        icon: '/favicon.ico'
+                    });
+                }
+                this.showMessage('Alerta de prueba ejecutada', 'success');
+            }
+
+            playAlertSound() {
+                // Simple beep sound
+                const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                const oscillator = audioContext.createOscillator();
+                const gainNode = audioContext.createGain();
+                
+                oscillator.connect(gainNode);
+                gainNode.connect(audioContext.destination);
+                
+                oscillator.frequency.value = 800;
+                oscillator.type = 'sine';
+                
+                gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 1);
+                
+                oscillator.start();
+                oscillator.stop(audioContext.currentTime + 1);
+            }
+
+            startPriceMonitoring() {
+                setInterval(() => {
+                    this.checkAlerts();
+                }, 5000);
+            }
+
+            async checkAlerts() {
+                for (const alert of this.alerts) {
+                    if (alert.triggered) continue;
+
+                    try {
+                        if (alert.type === 'price') {
+                            await this.checkPriceAlert(alert);
+                        } else if (alert.type === 'indicator') {
+                            await this.checkIndicatorAlert(alert);
+                        } else if (alert.type === 'volume') {
+                            await this.checkVolumeAlert(alert);
+                        }
+                    } catch (error) {
+                        console.error(`Error checking ${alert.type} alert:`, error);
+                    }
+                }
+            }
+
+            async checkPriceAlert(alert) {
+                        const response = await fetch(`https://api.binance.com/api/v3/ticker/price?symbol=${alert.symbol}`);
+                        const data = await response.json();
+                        const currentPrice = parseFloat(data.price);
+
+                        let shouldTrigger = false;
+
+                        switch (alert.condition) {
+                            case 'above':
+                                shouldTrigger = currentPrice > alert.value;
+                                break;
+                            case 'below':
+                                shouldTrigger = currentPrice < alert.value;
+                                break;
+                    case 'cross-up':
+                        // Para implementar cruces necesitaríamos histórico
+                        shouldTrigger = currentPrice > alert.value;
+                        break;
+                    case 'cross-down':
+                        shouldTrigger = currentPrice < alert.value;
+                        break;
+                        }
+
+                        if (shouldTrigger) {
+                    this.triggerAlert(alert, currentPrice, 'precio');
+                }
+            }
+
+            async checkIndicatorAlert(alert) {
+                // Obtener datos históricos para calcular indicadores
+                const interval = '1h'; // Usar 1h por defecto
+                const limit = Math.max(alert.period * 2, 50); // Asegurar suficientes datos
+                
+                const response = await fetch(`https://api.binance.com/api/v3/klines?symbol=${alert.symbol}&interval=${interval}&limit=${limit}`);
+                const klines = await response.json();
+                
+                if (!klines || klines.length < alert.period) {
+                    console.error('Datos insuficientes para calcular el indicador');
+                    return;
+                }
+
+                // Extraer precios de cierre
+                const closePrices = klines.map(kline => parseFloat(kline[4]));
+                let indicatorValue;
+
+                // Calcular el indicador según el tipo
+                switch (alert.indicator) {
+                    case 'rsi':
+                        indicatorValue = this.calculateRSI(closePrices, alert.period);
+                        break;
+                    case 'sma':
+                        indicatorValue = this.calculateSMA(closePrices, alert.period);
+                        break;
+                    case 'ema':
+                        indicatorValue = this.calculateEMA(closePrices, alert.period);
+                        break;
+                    case 'macd':
+                        const macdData = this.calculateMACD(closePrices);
+                        indicatorValue = macdData.macd;
+                        break;
+                    case 'bollinger':
+                        const bollinger = this.calculateBollinger(closePrices, alert.period);
+                        indicatorValue = bollinger.middle; // Usar la banda media como referencia
+                        break;
+                    default:
+                        console.error('Indicador no soportado:', alert.indicator);
+                        return;
+                }
+
+                if (indicatorValue === undefined || isNaN(indicatorValue)) {
+                    console.error('No se pudo calcular el indicador');
+                    return;
+                }
+
+                let shouldTrigger = false;
+
+                switch (alert.condition) {
+                    case 'above':
+                        shouldTrigger = indicatorValue > alert.value;
+                        break;
+                    case 'below':
+                        shouldTrigger = indicatorValue < alert.value;
+                        break;
+                    case 'cross-up':
+                        shouldTrigger = indicatorValue > alert.value;
+                        break;
+                    case 'cross-down':
+                        shouldTrigger = indicatorValue < alert.value;
+                        break;
+                }
+
+                if (shouldTrigger) {
+                    this.triggerAlert(alert, indicatorValue, `${alert.indicator.toUpperCase()}`);
+                }
+            }
+
+            async checkVolumeAlert(alert) {
+                const response = await fetch(`https://api.binance.com/api/v3/ticker/24hr?symbol=${alert.symbol}`);
+                const data = await response.json();
+                const volume24h = parseFloat(data.volume);
+
+                let shouldTrigger = false;
+                let currentValue = volume24h;
+
+                switch (alert.condition) {
+                    case 'above':
+                        shouldTrigger = volume24h > alert.value;
+                        break;
+                    case 'below':
+                        shouldTrigger = volume24h < alert.value;
+                        break;
+                    case 'spike':
+                        // Obtener volumen histórico para calcular el aumento
+                        const klineResponse = await fetch(`https://api.binance.com/api/v3/klines?symbol=${alert.symbol}&interval=${alert.timeframe}&limit=24`);
+                        const klines = await klineResponse.json();
+                        
+                        if (klines && klines.length > 1) {
+                            const volumes = klines.map(kline => parseFloat(kline[5]));
+                            const avgVolume = volumes.slice(0, -1).reduce((a, b) => a + b, 0) / (volumes.length - 1);
+                            const currentVolume = volumes[volumes.length - 1];
+                            const increase = ((currentVolume - avgVolume) / avgVolume) * 100;
+                            
+                            shouldTrigger = increase > alert.value;
+                            currentValue = increase;
+                        }
+                        break;
+                    case 'avg-above':
+                    case 'avg-below':
+                        // Similar a spike pero comparando con promedio
+                        const avgResponse = await fetch(`https://api.binance.com/api/v3/klines?symbol=${alert.symbol}&interval=${alert.timeframe}&limit=24`);
+                        const avgKlines = await avgResponse.json();
+                        
+                        if (avgKlines && avgKlines.length > 0) {
+                            const volumes = avgKlines.map(kline => parseFloat(kline[5]));
+                            const avgVolume = volumes.reduce((a, b) => a + b, 0) / volumes.length;
+                            
+                            shouldTrigger = alert.condition === 'avg-above' ? 
+                                volume24h > avgVolume : 
+                                volume24h < avgVolume;
+                        }
+                        break;
+                }
+
+                if (shouldTrigger) {
+                    this.triggerAlert(alert, currentValue, 'volumen');
+                }
+            }
+
+            // Métodos para calcular indicadores técnicos
+            calculateRSI(prices, period = 14) {
+                if (prices.length < period) return undefined;
+                
+                let gains = 0, losses = 0;
+                
+                // Calcular ganancias y pérdidas iniciales
+                for (let i = 1; i <= period; i++) {
+                    const change = prices[i] - prices[i - 1];
+                    if (change > 0) gains += change;
+                    else losses -= change;
+                }
+                
+                let avgGain = gains / period;
+                let avgLoss = losses / period;
+                
+                // Calcular RSI para los datos restantes
+                for (let i = period + 1; i < prices.length; i++) {
+                    const change = prices[i] - prices[i - 1];
+                    const gain = change > 0 ? change : 0;
+                    const loss = change < 0 ? -change : 0;
+                    
+                    avgGain = ((avgGain * (period - 1)) + gain) / period;
+                    avgLoss = ((avgLoss * (period - 1)) + loss) / period;
+                }
+                
+                const rs = avgGain / avgLoss;
+                return 100 - (100 / (1 + rs));
+            }
+
+            calculateSMA(prices, period) {
+                if (prices.length < period) return undefined;
+                
+                const sum = prices.slice(-period).reduce((a, b) => a + b, 0);
+                return sum / period;
+            }
+
+            calculateEMA(prices, period) {
+                if (prices.length < period) return undefined;
+                
+                const multiplier = 2 / (period + 1);
+                let ema = prices.slice(0, period).reduce((a, b) => a + b, 0) / period;
+                
+                for (let i = period; i < prices.length; i++) {
+                    ema = ((prices[i] - ema) * multiplier) + ema;
+                }
+                
+                return ema;
+            }
+
+            calculateMACD(prices, fastPeriod = 12, slowPeriod = 26, signalPeriod = 9) {
+                const fastEMA = this.calculateEMA(prices, fastPeriod);
+                const slowEMA = this.calculateEMA(prices, slowPeriod);
+                
+                if (!fastEMA || !slowEMA) return { macd: undefined, signal: undefined };
+                
+                const macd = fastEMA - slowEMA;
+                
+                // Para simplificar, retornar solo el MACD
+                return { macd: macd, signal: 0 };
+            }
+
+            calculateBollinger(prices, period = 20, multiplier = 2) {
+                const sma = this.calculateSMA(prices, period);
+                if (!sma) return { upper: undefined, middle: undefined, lower: undefined };
+                
+                // Calcular desviación estándar
+                const recentPrices = prices.slice(-period);
+                const squaredDiffs = recentPrices.map(price => Math.pow(price - sma, 2));
+                const avgSquaredDiff = squaredDiffs.reduce((a, b) => a + b, 0) / period;
+                const stdDev = Math.sqrt(avgSquaredDiff);
+                
+                return {
+                    upper: sma + (stdDev * multiplier),
+                    middle: sma,
+                    lower: sma - (stdDev * multiplier)
+                };
+            }
+
+            triggerAlert(alert, currentValue, type = 'precio') {
+                alert.triggered = true;
+                alert.triggeredAt = new Date();
+                alert.triggeredValue = currentValue;
+
+                this.triggeredToday++;
+                this.activeCount--;
+
+                this.playAlertSound();
+
+                // Crear mensaje personalizado según el tipo de alerta
+                let notificationBody;
+                if (alert.type === 'price') {
+                    notificationBody = alert.message || `Precio ${alert.condition === 'above' ? '>' : '<'} ${alert.value}`;
+                } else if (alert.type === 'indicator') {
+                    notificationBody = alert.message || `${alert.indicator.toUpperCase()} ${alert.condition} ${alert.value} (actual: ${currentValue.toFixed(2)})`;
+                } else if (alert.type === 'volume') {
+                    const volumeText = alert.condition === 'spike' ? `aumento de ${currentValue.toFixed(2)}%` : `volumen ${currentValue.toLocaleString()}`;
+                    notificationBody = alert.message || `Volumen: ${volumeText}`;
+                }
+
+                if (Notification.permission === 'granted') {
+                    new Notification(`Alerta ${type}: ${alert.symbol}`, {
+                        body: notificationBody,
+                        icon: '/favicon.ico'
+                    });
+                }
+
+                this.updateDisplay();
+                this.saveData();
+            }
+
+            removeAlert(alertId) {
+                const index = this.alerts.findIndex(alert => alert.id === alertId);
+                if (index > -1) {
+                    this.alerts.splice(index, 1);
+                    this.activeCount--;
+                    this.updateDisplay();
+                    this.saveData();
+                    this.showMessage('Alerta eliminada', 'success');
+                }
+            }
+
+            updateDisplay() {
+                const activeCountElement = document.getElementById('alerts-active-count');
+                const triggeredTodayElement = document.getElementById('alerts-triggered-today');
+                const totalCountElement = document.getElementById('alerts-total-count');
+                
+                if (activeCountElement) activeCountElement.textContent = this.activeCount;
+                if (triggeredTodayElement) triggeredTodayElement.textContent = this.triggeredToday;
+                if (totalCountElement) totalCountElement.textContent = this.totalCount;
+                
+                this.updateActiveAlertsList();
+            }
+
+            updateActiveAlertsList() {
+                const container = document.getElementById('activeAlerts');
+                if (!container) return;
+                
+                if (this.alerts.length === 0) {
+                    container.innerHTML = `
+                        <div class="alert-item">
+                            <div style="text-align: center; color: #bdc3c7; padding: 20px;">
+                                No hay alertas activas. Crea una nueva alerta usando el formulario.
+                            </div>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                container.innerHTML = this.alerts.map(alert => {
+                    let alertDescription;
+                    if (alert.type === 'price') {
+                        alertDescription = `Precio ${alert.condition === 'above' ? '>' : '<'} ${alert.value}`;
+                    } else if (alert.type === 'indicator') {
+                        alertDescription = `${alert.indicator.toUpperCase()}(${alert.period}) ${alert.condition} ${alert.value}`;
+                    } else if (alert.type === 'volume') {
+                        let conditionText;
+                        switch (alert.condition) {
+                            case 'above': conditionText = `Volumen > ${alert.value.toLocaleString()}`; break;
+                            case 'below': conditionText = `Volumen < ${alert.value.toLocaleString()}`; break;
+                            case 'spike': conditionText = `Pico volumen > ${alert.value}%`; break;
+                            case 'avg-above': conditionText = 'Volumen > promedio'; break;
+                            case 'avg-below': conditionText = 'Volumen < promedio'; break;
+                            default: conditionText = `Volumen ${alert.condition} ${alert.value}`;
+                        }
+                        alertDescription = conditionText;
+                    } else {
+                        alertDescription = `${alert.condition} ${alert.value}`;
+                    }
+
+                    return `
+                    <div class="alert-item ${alert.triggered ? 'alert-triggered' : 'alert-active'}">
+                        <div>
+                                <strong>${alert.symbol}</strong> <small>[${alert.type}]</small><br>
+                                ${alertDescription}
+                            ${alert.message ? '<br><small>' + alert.message + '</small>' : ''}
+                        </div>
+                        <div>
+                            <span style="color: ${alert.triggered ? '#e74c3c' : '#2ecc71'};">
+                                ${alert.triggered ? 'Disparada' : 'Activa'}
+                            </span>
+                            <button onclick="removeAlert(${alert.id})" 
+                                    style="margin-left: 10px; padding: 2px 6px; background: #e74c3c; border: none; border-radius: 3px; color: white; cursor: pointer;">
+                                ×
+                            </button>
+                        </div>
+                    </div>
+                    `;
+                }).join('');
+            }
+
+            loadData() {
+                const data = DataManager.loadData('alertsData');
+                if (data) {
+                    this.alerts = data.alerts || [];
+                    this.activeCount = data.activeCount || 2;
+                    this.triggeredToday = data.triggeredToday || 5;
+                    this.totalCount = data.totalCount || 24;
+                }
+            }
+
+            saveData() {
+                DataManager.saveData('alertsData', {
+                    alerts: this.alerts,
+                    activeCount: this.activeCount,
+                    triggeredToday: this.triggeredToday,
+                    totalCount: this.totalCount
+                });
+            }
+
+            showMessage(message, type) {
+                const messageArea = document.getElementById('messageArea-alerts');
+                if (messageArea) {
+                    const messageDiv = document.createElement('div');
+                    messageDiv.className = type;
+                    messageDiv.textContent = message;
+                    
+                    messageArea.innerHTML = '';
+                    messageArea.appendChild(messageDiv);
+                    
+                    setTimeout(() => {
+                        if (messageDiv.parentNode) {
+                            messageDiv.remove();
+                        }
+                    }, 3000);
+                }
+            }
+        }
+
+        // Analytics & Backtesting Class
+        class Analytics {
+            constructor() {
+                this.strategy = 'sma-cross';
+                this.results = {};
+                
+                this.init();
+            }
+
+            init() {
+                this.setupEventListeners();
+            }
+
+            setupEventListeners() {
+                const runBtn = document.getElementById('runBacktest');
+                const exportBtn = document.getElementById('exportResults');
+                
+                if (runBtn) runBtn.addEventListener('click', () => this.runBacktest());
+                if (exportBtn) exportBtn.addEventListener('click', () => this.exportResults());
+                
+                document.querySelectorAll('[data-strategy]').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        document.querySelectorAll('[data-strategy]').forEach(b => b.classList.remove('active'));
+                        e.target.classList.add('active');
+                        this.strategy = e.target.dataset.strategy;
+                    });
+                });
+            }
+
+            runBacktest() {
+                const startDateElement = document.getElementById('backtest-start');
+                const endDateElement = document.getElementById('backtest-end');
+                const capitalElement = document.getElementById('backtest-capital');
+                
+                if (!startDateElement || !endDateElement || !capitalElement) {
+                    console.error('Backtest form elements not found');
+                    this.showMessage('Error: Formulario de backtest no encontrado', 'error');
+                    return;
+                }
+                
+                const startDate = startDateElement.value;
+                const endDate = endDateElement.value;
+                const capital = parseFloat(capitalElement.value);
+
+                // Simulate backtest results
+                const results = this.simulateBacktest(this.strategy, capital);
+                
+                document.getElementById('backtest-roi').textContent = `+${results.roi.toFixed(1)}%`;
+                document.getElementById('backtest-sharpe').textContent = results.sharpe.toFixed(2);
+                document.getElementById('backtest-drawdown').textContent = `${results.drawdown.toFixed(1)}%`;
+                document.getElementById('backtest-winrate').textContent = `${results.winRate.toFixed(1)}%`;
+                document.getElementById('backtest-trades').textContent = results.totalTrades;
+                document.getElementById('backtest-duration').textContent = `${results.avgDuration} days`;
+                document.getElementById('backtest-profit-factor').textContent = results.profitFactor.toFixed(2);
+
+                this.showMessage('Backtest ejecutado correctamente', 'success');
+            }
+
+            simulateBacktest(strategy, capital) {
+                // Simulated results for demo
+                return {
+                    roi: Math.random() * 50 + 10,
+                    sharpe: Math.random() * 2 + 0.5,
+                    drawdown: -(Math.random() * 15 + 5),
+                    winRate: Math.random() * 30 + 50,
+                    totalTrades: Math.floor(Math.random() * 100 + 50),
+                    avgDuration: Math.floor(Math.random() * 10 + 3),
+                    profitFactor: Math.random() * 2 + 1
+                };
+            }
+
+            exportResults() {
+                const data = {
+                    strategy: this.strategy,
+                    results: this.results,
+                    exportDate: new Date().toISOString()
+                };
+
+                const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `backtest-results-${this.strategy}-${new Date().getTime()}.json`;
+                a.click();
+                URL.revokeObjectURL(url);
+
+                this.showMessage('Resultados exportados correctamente', 'success');
+            }
+
+            showMessage(message, type) {
+                const messageArea = document.getElementById('messageArea-analytics');
+                if (messageArea) {
+                    const messageDiv = document.createElement('div');
+                    messageDiv.className = type;
+                    messageDiv.textContent = message;
+                    
+                    messageArea.innerHTML = '';
+                    messageArea.appendChild(messageDiv);
+                    
+                    setTimeout(() => {
+                        if (messageDiv.parentNode) {
+                            messageDiv.remove();
+                        }
+                    }, 3000);
+                }
+            }
+        }
+
+        // Global helper functions
+        function removeAlert(alertId) {
+            if (window.alertsSystem) {
+                window.alertsSystem.removeAlert(alertId);
+            }
+        }
+
+        // Debug function for testing tab switching
+        function testTabSwitch(tabId) {
+            console.log('Testing tab switch to:', tabId);
+            if (window.tabManager) {
+                window.tabManager.switchTab(tabId);
+            } else {
+                console.error('TabManager not initialized');
+            }
+        }
+
+        // Make tabManager available globally for debugging
+        window.tabManager = null;
+
+        // Initialize the application
+        let tabManager;
+        window.addEventListener('load', async () => {
+            console.log('Initializing application...');
+            
+            try {
+            await loadTabContents();
+
+                // Setup data persistence first
+                DataManager.setupResetButton();
+                
+                // Request notification permission
+                if (Notification.permission === 'default') {
+                    Notification.requestPermission();
+                }
+                
+                // Initialize all systems
+                console.log('Initializing trading systems...');
+                window.dcaBot = new DCABot();
+                window.portfolioManager = new PortfolioManager();
+                window.analytics = new Analytics();
+                window.alertsSystem = new AlertsSystem();
+
+                // Global functions for manual data modal
+                window.openManualDataModal = function() {
+                    if (window.portfolioManager) {
+                        window.portfolioManager.openManualDataModal();
+                    }
+                };
+
+                window.closeManualDataModal = function() {
+                    if (window.portfolioManager) {
+                        window.portfolioManager.closeManualDataModal();
+                    }
+                };
+
+                window.saveManualData = function() {
+                    if (window.portfolioManager) {
+                        window.portfolioManager.saveManualData();
+                    }
+                };
+
+                window.viewAllManualData = function() {
+                    if (window.portfolioManager) {
+                        window.portfolioManager.showAllManualData();
+                    }
+                };
+
+                window.deleteManualDataEntry = function(entryId) {
+                    if (window.portfolioManager) {
+                        if (window.portfolioManager.deleteManualDataEntry(entryId)) {
+                            window.portfolioManager.updateManualDataHistoryDisplay();
+                            // Close modal if open
+                            const modal = document.querySelector('.modal-overlay');
+                            if (modal) {
+                                modal.remove();
+                            }
+                        }
+                    }
+                };
+
+                window.exportManualDataHistory = function() {
+                    if (window.portfolioManager) {
+                        const history = window.portfolioManager.getManualDataHistory();
+                        if (history.length === 0) {
+                            window.portfolioManager.showMessage('No hay datos para exportar', 'info');
+                            return;
+                        }
+
+                        const exportData = {
+                            manualDataHistory: history,
+                            exportDate: new Date().toISOString(),
+                            totalEntries: history.length
+                        };
+
+                        const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = `manual-data-history-${new Date().getTime()}.json`;
+                        a.click();
+                        URL.revokeObjectURL(url);
+
+                        window.portfolioManager.showMessage('Historial de datos manuales exportado exitosamente', 'success');
+                    }
+                };
+
+                // Binance API Functions
+                window.updateCryptoPrice = async function() {
+                    const symbol = document.getElementById('cryptoSymbol').value;
+                    const statusEl = document.getElementById('priceUpdateStatus');
+                    
+                    if (!symbol) {
+                        document.getElementById('currentPrice').value = '';
+                        document.getElementById('currentPrice').placeholder = 'Selecciona una moneda';
+                        if (statusEl) statusEl.textContent = '';
+                        return;
+                    }
+
+                    try {
+                        document.getElementById('currentPrice').placeholder = 'Cargando...';
+                        if (statusEl) statusEl.textContent = '⏳ Actualizando precio...';
+                        
+                        // Using Binance public API (no API key required)
+                        const response = await fetch(`https://api.binance.com/api/v3/ticker/price?symbol=${symbol}`);
+                        const data = await response.json();
+                        
+                        if (data.price) {
+                            const price = parseFloat(data.price);
+                            document.getElementById('currentPrice').value = price.toFixed(2);
+                            
+                            if (statusEl) statusEl.textContent = `✅ Precio actualizado: ${new Date().toLocaleTimeString()}`;
+                            
+                            // Auto-calculate if we have entry price and quantity
+                            calculateCryptoValue();
+                        } else {
+                            document.getElementById('currentPrice').placeholder = 'Error al cargar precio';
+                            if (statusEl) statusEl.textContent = '❌ Error al cargar precio';
+                        }
+                    } catch (error) {
+                        console.error('Error fetching price:', error);
+                        document.getElementById('currentPrice').placeholder = 'Error de conexión';
+                        if (statusEl) statusEl.textContent = '❌ Error de conexión';
+                    }
+                };
+
+                window.calculateCryptoValue = function() {
+                    const quantity = parseFloat(document.getElementById('cryptoQuantity').value) || 0;
+                    const entryPrice = parseFloat(document.getElementById('entryPrice').value) || 0;
+                    const currentPrice = parseFloat(document.getElementById('currentPrice').value) || 0;
+                    
+                    if (quantity > 0 && entryPrice > 0) {
+                        // Calculate total investment
+                        const totalInvestment = quantity * entryPrice;
+                        document.getElementById('totalInvestment').value = totalInvestment.toFixed(2);
+                        
+                        // Calculate current value
+                        const currentValue = quantity * currentPrice;
+                        document.getElementById('currentValue').value = currentValue.toFixed(2);
+                        
+                        // Calculate unrealized PnL
+                        const unrealizedPnl = currentValue - totalInvestment;
+                        document.getElementById('unrealizedPnl').value = unrealizedPnl.toFixed(2);
+                        
+                        // Calculate percentage
+                        const percentage = totalInvestment > 0 ? (unrealizedPnl / totalInvestment) * 100 : 0;
+                        const pnlElement = document.getElementById('pnlPercentage');
+                        
+                        if (unrealizedPnl > 0) {
+                            pnlElement.textContent = `📈 +${percentage.toFixed(2)}% (Ganancia)`;
+                            pnlElement.style.color = '#2ecc71';
+                        } else if (unrealizedPnl < 0) {
+                            pnlElement.textContent = `📉 ${percentage.toFixed(2)}% (Pérdida)`;
+                            pnlElement.style.color = '#e74c3c';
+                        } else {
+                            pnlElement.textContent = `⚖️ 0.00% (Sin cambios)`;
+                            pnlElement.style.color = '#bdc3c7';
+                        }
+                        
+                        // Auto-update portfolio total value
+                        updatePortfolioSummary();
+                    }
+                };
+
+                window.updatePortfolioSummary = function() {
+                    const cryptoValue = parseFloat(document.getElementById('currentValue').value) || 0;
+                    const manualValue = parseFloat(document.getElementById('manualTotalValue').value) || 0;
+                    
+                    // Set portfolio total as sum of crypto + manual
+                    const totalPortfolio = cryptoValue + manualValue;
+                    document.getElementById('manualTotalValue').value = totalPortfolio.toFixed(2);
+                    
+                    // Auto-calculate daily PnL if we have crypto data
+                    const entryPrice = parseFloat(document.getElementById('entryPrice').value) || 0;
+                    const currentPrice = parseFloat(document.getElementById('currentPrice').value) || 0;
+                    const quantity = parseFloat(document.getElementById('cryptoQuantity').value) || 0;
+                    
+                    if (entryPrice > 0 && currentPrice > 0 && quantity > 0) {
+                        const dailyPnl = (currentPrice - entryPrice) * quantity;
+                        document.getElementById('manualDailyPnl').value = dailyPnl.toFixed(2);
+                    }
+                };
+
+                window.updateAllCryptoPrices = async function() {
+                    if (!window.portfolioManager) return;
+                    
+                    console.log('Updating crypto prices and syncing charts...');
+                    
+                    // Update all crypto prices and portfolio values
+                    await window.portfolioManager.calculateRealTimePortfolioValues();
+                    
+                    // Update all displays (this will also refresh the current chart)
+                    window.portfolioManager.updateMetrics();
+                    
+                    window.portfolioManager.showMessage('Portfolio y gráficas actualizadas con precios reales de Binance', 'success');
+                };
+                
+                // Initialize TabManager
+                console.log('Initializing TabManager...');
+                tabManager = new TabManager();
+                window.tabManager = tabManager;
+                
+                // Eliminar inicialización forzada del Spot al cargar para respetar la pestaña activa
+                
+                console.log('Application initialization completed successfully');
+            } catch (error) {
+                console.error('Error during application initialization:', error);
+            }
+        });
+
+       
+    
