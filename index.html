@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trading Platform Pro - Grid Bots & Manual Trading</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="assets/css/main.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+</head>
+<body>
+    <div class="main-header">
+        <h1>
+            <div class="crypto-icon">⚡</div>
+            Trading Platform
+        </h1>
+        <div class="subtitle">
+            Grid Trading Bots & Manual Trading | Spot & Futures
+            <span id="connectionStatus" style="color: #2ecc71; margin-left: 15px;">🟢 Conectado</span>
+            <span id="binanceStatus" style="color: #3498db; margin-left: 15px;">🪙 Binance API: Conectado</span>
+            <span id="portfolioStatus" style="color: #f39c12; margin-left: 15px;">📊 Portfolio: Tiempo Real - Creador Andres MAG</span>
+        </div>
+        <div style="margin-top: 15px;">
+            <button id="resetAllData" class="reset-btn" style="padding: 8px 20px; background: linear-gradient(45deg, #e74c3c, #c0392b); border: none; border-radius: 8px; color: white; cursor: pointer; font-size: 14px; font-weight: 600;">
+                🗑️ RESETEAR TODOS LOS DATOS
+            </button>
+        </div>
+    </div>
+
+    <div class="tab-navigation">
+        <div class="tab-btn active" data-tab="spot-grid">📊 Spot Grid</div>
+        <div class="tab-btn" data-tab="futures-grid">⚡ Futures Grid</div>
+        <div class="tab-btn" data-tab="manual-spot">🎯 Manual Spot</div>
+        <div class="tab-btn" data-tab="manual-futures">🚀 Manual Futures</div>
+        <div class="tab-btn" data-tab="dca-bot">💰 DCA Bot</div>
+        <div class="tab-btn" data-tab="portfolio">📈 Portfolio</div>
+        <div class="tab-btn" data-tab="analytics">📊 Analytics</div>
+        <div class="tab-btn" data-tab="alerts">🔔 Alerts</div>
+    </div>
+
+    <div id="spot-grid" class="tab-content active" data-src="pages/spot-grid.html"></div>
+    <div id="futures-grid" class="tab-content" data-src="pages/futures-grid.html"></div>
+    <div id="manual-spot" class="tab-content" data-src="pages/manual-spot.html"></div>
+    <div id="manual-futures" class="tab-content" data-src="pages/manual-futures.html"></div>
+    <div id="dca-bot" class="tab-content" data-src="pages/dca-bot.html"></div>
+    <div id="portfolio" class="tab-content" data-src="pages/portfolio.html"></div>
+    <div id="analytics" class="tab-content" data-src="pages/analytics.html"></div>
+    <div id="alerts" class="tab-content" data-src="pages/alerts.html"></div>
+
+    <script src="assets/js/app.js"></script>
+</body>
+</html>
