@@ -3,12 +3,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Trading Platform Pro - Grid Bots & Manual Trading</title>
+    <title>Trading Platform Pro — Grid Bots &amp; Manual Trading (simulador)</title>
+    <meta name="description" content="Simulador de grid bots y trading manual con precios públicos de Binance. No envía órdenes reales.">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="assets/css/main.css">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <script
+        src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"
+        integrity="sha384-9MhbyIRcBVQiiC7FSd7T38oJNj2Zh+EfxS7/vjhBi4OOT78NlHSnzM31EZRWR1LZ"
+        crossorigin="anonymous"
+        referrerpolicy="no-referrer"></script>
 </head>
 <body>
     <div class="main-header">
@@ -17,16 +22,22 @@
             Trading Platform
         </h1>
         <div class="subtitle">
-            Grid Trading Bots & Manual Trading | Spot & Futures
-            <span id="connectionStatus" style="color: #2ecc71; margin-left: 15px;">🟢 Conectado</span>
-            <span id="binanceStatus" style="color: #3498db; margin-left: 15px;">🪙 Binance API: Conectado</span>
-            <span id="portfolioStatus" style="color: #f39c12; margin-left: 15px;">📊 Portfolio: Tiempo Real - Creador Andres MAG</span>
+            Grid Trading Bots &amp; Manual Trading | Spot &amp; Futures
         </div>
-        <div style="margin-top: 15px;">
-            <button id="resetAllData" class="reset-btn" style="padding: 8px 20px; background: linear-gradient(45deg, #e74c3c, #c0392b); border: none; border-radius: 8px; color: white; cursor: pointer; font-size: 14px; font-weight: 600;">
-                🗑️ RESETEAR TODOS LOS DATOS
-            </button>
+        <div class="status-row">
+            <span id="connectionStatus" class="status-badge" data-state="connecting">🔌 Precios: conectando…</span>
+            <span id="connectionDetail" class="status-detail">consultando API pública</span>
+            <span class="status-badge" data-state="sim" title="Todas las operaciones son simuladas: no hay claves ni órdenes reales">
+                🧪 Modo simulación — sin órdenes reales
+            </span>
         </div>
+        <div class="header-actions">
+            <button id="exportData" class="ghost-btn" type="button">💾 Exportar datos</button>
+            <button id="importData" class="ghost-btn" type="button">⬆️ Importar datos</button>
+            <input id="importDataFile" type="file" accept="application/json,.json" hidden>
+            <button id="resetAllData" class="reset-btn" type="button">🗑️ RESETEAR TODOS LOS DATOS</button>
+        </div>
+        <div class="credit">Creador: Andres MAG</div>
     </div>
 
     <div class="tab-navigation">
@@ -49,6 +60,31 @@
     <div id="analytics" class="tab-content" data-src="pages/analytics.html"></div>
     <div id="alerts" class="tab-content" data-src="pages/alerts.html"></div>
 
-    <script src="assets/js/app.js"></script>
+    <noscript>
+        <p class="error">Esta aplicación necesita JavaScript.</p>
+    </noscript>
+
+    <!-- Núcleo (módulos ES): matemática pura, cliente Binance, esquema de datos. -->
+    <script type="module" src="src/core/grid-math.js"></script>
+    <script type="module" src="src/core/binance.js"></script>
+    <script type="module" src="src/core/storage.js"></script>
+    <script type="module">
+        import { connectStatusBadge } from './src/core/status-badge.js';
+        window.addEventListener('load', () => connectStatusBadge());
+    </script>
+
+    <!-- Aplicación (scripts clásicos, en orden de dependencia). -->
+    <script src="src/core/data-manager.js"></script>
+    <script src="src/core/tab-manager.js"></script>
+    <script src="src/features/spot-grid.js"></script>
+    <script src="src/features/futures-grid.js"></script>
+    <script src="src/features/manual-spot.js"></script>
+    <script src="src/features/manual-futures.js"></script>
+    <script src="src/features/indicators.js"></script>
+    <script src="src/features/dca-bot.js"></script>
+    <script src="src/features/portfolio.js"></script>
+    <script src="src/features/alerts.js"></script>
+    <script src="src/features/analytics.js"></script>
+    <script src="src/main.js"></script>
 </body>
 </html>
