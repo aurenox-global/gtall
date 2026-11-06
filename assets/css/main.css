@@ -1614,3 +1614,67 @@ button {
     transform: translateY(-2px);
     box-shadow: 0 8px 20px rgba(231, 76, 60, 0.3);
 }
+
+/* ===== Estado de conexión y acciones de cabecera (refactor v2) ===== */
+.status-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    margin-top: 12px;
+    font-size: 13px;
+}
+
+.status-badge {
+    padding: 4px 12px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    color: #ecf0f1;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.status-badge[data-state="online"] { border-color: rgba(46, 204, 113, 0.6); color: #2ecc71; }
+.status-badge[data-state="stale"] { border-color: rgba(243, 156, 18, 0.6); color: #f39c12; }
+.status-badge[data-state="offline"] { border-color: rgba(231, 76, 60, 0.6); color: #e74c3c; }
+.status-badge[data-state="sim"] { border-color: rgba(52, 152, 219, 0.6); color: #3498db; }
+
+.status-detail {
+    color: rgba(236, 240, 241, 0.65);
+    font-size: 12px;
+}
+
+.header-actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 10px;
+    margin-top: 14px;
+}
+
+.ghost-btn {
+    padding: 8px 18px;
+    background: transparent;
+    border: 1px solid rgba(255, 255, 255, 0.35);
+    border-radius: 8px;
+    color: #ecf0f1;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 600;
+    transition: background 0.2s ease, transform 0.2s ease;
+}
+
+.ghost-btn:hover {
+    background: rgba(255, 255, 255, 0.12);
+    transform: translateY(-1px);
+}
+
+.credit {
+    margin-top: 10px;
+    font-size: 11px;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    color: rgba(236, 240, 241, 0.45);
+}
