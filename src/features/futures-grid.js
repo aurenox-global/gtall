@@ -282,16 +282,14 @@ class FuturesGridTradingBot {
             if (element) element.textContent = value;
         });
 
-        this.gridLevels = [];
-        for (let i = 0; i < gridCount; i++) {
-            const price = minPrice + (i * gridInterval);
-            this.gridLevels.push({
-                price: price,
+        // Niveles desde la implementación única y testeada (grid-math.js)
+        this.gridLevels = GridMath.computeLevels({ minPrice, maxPrice, gridCount })
+            .map(price => ({
+                price,
                 positionSize: positionSizePerGrid,
                 margin: availableMarginPerGrid,
                 filled: false
-            });
-        }
+            }));
 
         this.margin = margin;
         this.gridInterval = gridInterval;
@@ -411,16 +409,9 @@ class FuturesGridTradingBot {
     }
 
     updateConnectionStatus(connected) {
-        const statusElement = document.getElementById('connectionStatus');
-        if (statusElement) {
-            if (connected) {
-                statusElement.innerHTML = '🟢 Conectado';
-                statusElement.style.color = '#2ecc71';
-            } else {
-                statusElement.innerHTML = '🔴 Error de Conexión';
-                statusElement.style.color = '#e74c3c';
-            }
-        }
+        // El badge de la cabecera lo gobierna src/core/status-badge.js con el
+        // estado real del cliente Binance; aquí solo guardamos el último dato.
+        this.connectionOk = connected;
     }
 
     initializeChart() {

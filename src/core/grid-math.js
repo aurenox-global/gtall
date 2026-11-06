@@ -135,6 +135,29 @@ export function hitTakeProfitStopLoss({ entryPrice, currentPrice, tpPercent = 0,
   return null;
 }
 
+/**
+ * Realiza el cierre de un inventario a precio de mercado y devuelve el
+ * desglose. El PnL se calcula contra el coste real (lotes + inventario
+ * inicial), no contra el precio de entrada del nivel de rejilla: así una
+ * salida por TP/SL no se contabiliza como "grid profit".
+ */
+export function realizeExit({ qty, price, feePct = 0, costBasis = 0 }) {
+  const quantity = Number(qty) || 0;
+  const exitPrice = Number(price) || 0;
+  const gross = quantity * exitPrice;
+  const fee = feeAmount(gross, feePct);
+  const proceeds = gross - fee;
+  return {
+    qty: quantity,
+    price: exitPrice,
+    gross,
+    fee,
+    proceeds,
+    costBasis: Number(costBasis) || 0,
+    pnl: proceeds - (Number(costBasis) || 0),
+  };
+}
+
 export const GridMath = {
   LIMITS,
   computeLevels,
@@ -146,6 +169,7 @@ export const GridMath = {
   cycleProfit,
   unrealizedPnl,
   hitTakeProfitStopLoss,
+  realizeExit,
 };
 
 if (typeof window !== 'undefined') {
