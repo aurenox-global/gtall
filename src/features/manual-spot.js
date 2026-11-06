@@ -158,16 +158,9 @@ class ManualSpotTrader {
     }
 
     updateConnectionStatus(connected) {
-        const statusElement = document.getElementById('connectionStatus');
-        if (statusElement) {
-            if (connected) {
-                statusElement.innerHTML = '🟢 Conectado';
-                statusElement.style.color = '#2ecc71';
-            } else {
-                statusElement.innerHTML = '🔴 Error de Conexión';
-                statusElement.style.color = '#e74c3c';
-            }
-        }
+        // El badge de la cabecera lo gobierna src/core/status-badge.js con el
+        // estado real del cliente Binance; aquí solo guardamos el último dato.
+        this.connectionOk = connected;
     }
 
     calculateTotal() {

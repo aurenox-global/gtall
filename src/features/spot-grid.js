@@ -13,6 +13,9 @@ class SpotGridTradingBot {
         this.totalProfit = 0;
         this.gridProfit = 0;
         this.trendPnl = 0;
+        this.exitPnl = 0;      // PnL de salidas por TP/SL (no es profit de rejilla)
+        this.exitEvents = [];
+        this.exited = false;   // true tras cerrar inventario por TP/SL
         this.completedRounds = 0;
         this.gridLevels = [];
         this.priceChart = null;
@@ -201,42 +204,22 @@ class SpotGridTradingBot {
         // Construcción de niveles y cantidades por nivel (modelo Pionex):
         // - Órdenes de COMPRA por debajo del precio de entrada: repartir el USDT disponible por orden de compra
         // - Órdenes de VENTA por encima del precio de entrada: repartir la cantidad de crypto disponible por orden de venta
-        this.gridLevels = [];
-        const levels = [];
-        if (gridPercent > 0) {
-            const ratio = 1 + gridPercent / 100;
-            const startPrice = minPrice;
-            for (let i = 0; i < gridCount; i++) {
-                levels.push(startPrice * Math.pow(ratio, i));
-            }
-        } else {
-            for (let i = 0; i < gridCount; i++) {
-                levels.push(minPrice + (i * gridInterval));
-            }
-        }
-
-        const buyLevels = levels.filter(p => p < entryPrice);
-        const sellLevels = levels.filter(p => p > entryPrice);
-        const buyLevelsCount = buyLevels.length;
-        const sellLevelsCount = sellLevels.length;
-
-        const totalBaseQty = cryptoAllocation / entryPrice; // Crypto disponible inicial
-        const sellQtyPerOrder = sellLevelsCount > 0 ? (totalBaseQty / sellLevelsCount) : 0;
-        const buyUsdtPerOrder = buyLevelsCount > 0 ? (stablecoinAllocation / buyLevelsCount) : 0;
-
-        levels.forEach(price => {
-            let qty = 0;
-            if (price < entryPrice) {
-                // Compra: fijar cantidad para gastar ~USDT por orden
-                qty = buyUsdtPerOrder > 0 ? (buyUsdtPerOrder / price) : 0;
-            } else if (price > entryPrice) {
-                // Venta: repartir el inventario inicial en partes iguales
-                qty = sellQtyPerOrder;
-            } else {
-                qty = 0;
-            }
-            this.gridLevels.push({ price, cryptoQuantity: qty, gridInterval: gridInterval });
+        // Niveles y reparto de capital: implementación única y testeada (grid-math.js)
+        const levels = GridMath.computeLevels({ minPrice, maxPrice, gridCount, gridPercent });
+        const orders = GridMath.allocateLevels(levels, {
+            entryPrice,
+            cryptoAllocation,
+            stablecoinAllocation
         });
+
+        this.gridLevels = orders.map(order => ({
+            price: order.price,
+            cryptoQuantity: order.qty,
+            gridInterval
+        }));
+
+        const buyOrdersCount = orders.filter(order => order.side === 'buy').length;
+        const buyUsdtPerOrder = buyOrdersCount > 0 ? stablecoinAllocation / buyOrdersCount : 0;
 
         this.cryptoAllocation = cryptoAllocation;
         this.usdtAllocation = stablecoinAllocation;
@@ -293,16 +276,9 @@ class SpotGridTradingBot {
     }
 
     updateConnectionStatus(connected) {
-        const statusElement = document.getElementById('connectionStatus');
-        if (statusElement) {
-            if (connected) {
-                statusElement.innerHTML = '🟢 Conectado';
-                statusElement.style.color = '#2ecc71';
-            } else {
-                statusElement.innerHTML = '🔴 Error de Conexión';
-                statusElement.style.color = '#e74c3c';
-            }
-        }
+        // El badge de la cabecera lo gobierna src/core/status-badge.js con el
+        // estado real del cliente Binance; aquí solo guardamos el último dato.
+        this.connectionOk = connected;
     }
 
     initializeChart() {
@@ -506,6 +482,9 @@ class SpotGridTradingBot {
         this.totalProfit = 0;
         this.gridProfit = 0;
         this.trendPnl = 0;
+        this.exitPnl = 0;
+        this.exitEvents = [];
+        this.exited = false;
         this.completedRounds = 0;
         this.priceHistory = [];
         this.profits = [];
@@ -550,12 +529,14 @@ class SpotGridTradingBot {
             const priceChange = (simulatedPrice - entryPrice) / entryPrice;
             
             const cryptoAllocation = totalInvestment * (cryptoAllocationPercent / 100);
-            this.trendPnl = cryptoAllocation * priceChange;
+            if (!this.exited) {
+                this.trendPnl = cryptoAllocation * priceChange;
+            }
             
             // Check Take Profit and Stop Loss
             this.checkTakeProfitStopLoss(simulatedPrice, entryPrice);
             
-            this.totalProfit = this.gridProfit + this.trendPnl;
+            this.totalProfit = this.gridProfit + this.trendPnl + this.exitPnl;
             this.profits.push(this.totalProfit);
             
             this.historicalIndex++;
@@ -583,8 +564,10 @@ class SpotGridTradingBot {
                         const cryptoAllocationPercent = parseFloat(document.getElementById(`cryptoAllocation${this.suffix}`).value) || 57.96;
                         const cryptoAllocation = totalInvestment * (cryptoAllocationPercent / 100);
                         const priceChange = (livePrice - entryPrice) / entryPrice;
-                        this.trendPnl = cryptoAllocation * priceChange;
-                        this.totalProfit = this.gridProfit + this.trendPnl;
+                        if (!this.exited) {
+                this.trendPnl = cryptoAllocation * priceChange;
+            }
+                        this.totalProfit = this.gridProfit + this.trendPnl + this.exitPnl;
                         this.priceHistory.push({ time: new Date(now), price: livePrice });
                         const currentPriceElement = document.getElementById(`currentPrice${this.suffix}`);
                         if (currentPriceElement) {
@@ -603,6 +586,9 @@ class SpotGridTradingBot {
     }
 
     processGridOrders(currentPrice) {
+        // Tras un cierre por TP/SL no se siguen abriendo niveles
+        if (this.exited) return;
+
         if (this.lastPrice === 0) {
             this.lastPrice = currentPrice;
             return;
@@ -625,22 +611,25 @@ class SpotGridTradingBot {
         const tpPct = parseFloat(document.getElementById(`tpPercent${this.suffix}`)?.value) || 0;
         const slPct = parseFloat(document.getElementById(`slPercent${this.suffix}`)?.value) || 0;
         const entryPrice = parseFloat(document.getElementById(`entryPrice${this.suffix}`).value) || 0;
-        if (entryPrice > 0) {
-            const tpPrice = tpPct > 0 ? entryPrice * (1 + tpPct / 100) : null;
-            const slPrice = slPct > 0 ? entryPrice * (1 - slPct / 100) : null;
-            if (tpPrice && currentPrice >= tpPrice) {
-                // Cerrar posiciones abiertas: vender inventario disponible al precio actual
-                if (this.availableBaseQty > 0) {
-                    const tmpLevel = { price: currentPrice, cryptoQuantity: this.availableBaseQty };
-                    this.executeSellOrder(tmpLevel, currentPrice);
-                }
-            }
-            if (slPrice && currentPrice <= slPrice) {
-                // Cerrar posiciones abiertas: vender inventario disponible al precio actual
-                if (this.availableBaseQty > 0) {
-                    const tmpLevel = { price: currentPrice, cryptoQuantity: this.availableBaseQty };
-                    this.executeSellOrder(tmpLevel, currentPrice);
-                }
+        const hit = GridMath.hitTakeProfitStopLoss({
+            entryPrice,
+            currentPrice,
+            tpPercent: tpPct,
+            slPercent: slPct
+        });
+
+        if (hit) {
+            // La salida se cierra contra el coste real y se contabiliza aparte:
+            // antes se vendía como si fuera un nivel más de la rejilla.
+            const exit = this.closeInventoryAt(currentPrice, hit === 'tp' ? 'take-profit' : 'stop-loss');
+            if (exit) {
+                const sign = exit.pnl >= 0 ? '+' : '';
+                this.showMessage(
+                    hit === 'tp'
+                        ? `🎯 Take Profit: salida a ${currentPrice.toFixed(2)} → ${sign}${exit.pnl.toFixed(2)} USDT`
+                        : `🛑 Stop Loss: salida a ${currentPrice.toFixed(2)} → ${sign}${exit.pnl.toFixed(2)} USDT`,
+                    hit === 'tp' ? 'success' : 'error'
+                );
             }
         }
 
@@ -668,6 +657,53 @@ class SpotGridTradingBot {
                 return;
             }
         }
+    }
+
+    /**
+     * Cierra todo el inventario a precio de mercado (TP/SL).
+     * El resultado va a exitPnl, no a gridProfit: no es el cruce de un nivel.
+     */
+    closeInventoryAt(price, reason = 'exit') {
+        const qty = this.availableBaseQty;
+        if (!(qty > 0)) return null;
+
+        const feePercent = parseFloat(document.getElementById(`feePercent${this.suffix}`)?.value) || 0.20;
+        const entryPrice = this.getInitialCryptoPrice();
+
+        // Coste real: lotes abiertos (precio + comisión) + inventario inicial a entrada
+        let lotsQty = 0;
+        let lotsCost = 0;
+        for (const lot of this.openLots) {
+            lotsQty += lot.qty;
+            lotsCost += lot.qty * lot.price + lot.fee;
+        }
+        const initialQty = Math.max(0, qty - lotsQty);
+        const costBasis = lotsCost + initialQty * entryPrice;
+
+        const exit = GridMath.realizeExit({ qty, price, feePct: feePercent, costBasis });
+
+        this.availableBaseQty = 0;
+        this.availableQuote += exit.proceeds;
+        this.openLots = [];
+        this.exitPnl += exit.pnl;
+        this.exitEvents.push({ reason, ...exit, time: new Date() });
+        this.exited = true;
+
+        const symbol = (document.getElementById(`symbol${this.suffix}`)?.value || '').replace('USDT', '');
+        this.gridExecutions.push({
+            type: 'EXIT',
+            reason,
+            price: exit.price,
+            cryptoQuantity: exit.qty,
+            usdtAmount: exit.proceeds,
+            fee: exit.fee,
+            profit: exit.pnl,
+            time: new Date(),
+            symbol
+        });
+
+        this.totalProfit = this.gridProfit + this.trendPnl + this.exitPnl;
+        return exit;
     }
 
     executeSellOrder(level, currentPrice) {

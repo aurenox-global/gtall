@@ -8,6 +8,7 @@ import {
   describeLevels,
   feeAmount,
   hitTakeProfitStopLoss,
+  realizeExit,
   unrealizedPnl,
 } from '../src/core/grid-math.js';
 
@@ -98,6 +99,27 @@ describe('comisiones y PnL', () => {
 
   it('calcula PnL no realizado', () => {
     expect(unrealizedPnl({ entryPrice: 100, currentPrice: 105, qty: 2, fee: 1 })).toBeCloseTo(9);
+  });
+});
+
+describe('realizeExit', () => {
+  it('calcula la salida descontando comisión y coste real', () => {
+    const exit = realizeExit({ qty: 2, price: 110, feePct: 0.2, costBasis: 200 });
+    expect(exit.gross).toBeCloseTo(220);
+    expect(exit.fee).toBeCloseTo(0.44);
+    expect(exit.proceeds).toBeCloseTo(219.56);
+    expect(exit.pnl).toBeCloseTo(19.56);
+  });
+
+  it('puede dar pérdida (stop loss)', () => {
+    const exit = realizeExit({ qty: 1, price: 90, feePct: 0.2, costBasis: 100 });
+    expect(exit.pnl).toBeCloseTo(-10.18);
+  });
+
+  it('sin inventario devuelve una salida vacía', () => {
+    const exit = realizeExit({ qty: 0, price: 100, costBasis: 0 });
+    expect(exit.proceeds).toBe(0);
+    expect(exit.pnl).toBe(0);
   });
 });
 
