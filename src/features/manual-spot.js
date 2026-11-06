@@ -7,6 +7,8 @@
 class ManualSpotTrader {
     constructor() {
         this.currentPrice = 0;
+        this.lastPriceAt = null;      // última lectura válida de Binance
+        this.lastPriceErrorAt = 0;    // para no repetir el aviso en cada tick
         this.usdtBalance = 0;
         this.cryptoBalance = 0;
         this.totalValue = 0;
@@ -132,6 +134,7 @@ class ManualSpotTrader {
             const response = await BinanceAPI.fetch(`https://api.binance.com/api/v3/ticker/price?symbol=${this.symbol}`);
             const data = await response.json();
             this.currentPrice = parseFloat(data.price);
+            this.lastPriceAt = Date.now();
             
             // Update connection status
             this.updateConnectionStatus(true);
@@ -153,7 +156,12 @@ class ManualSpotTrader {
             
         } catch (error) {
             this.updateConnectionStatus(false);
-            this.showMessage('Error al obtener precio: ' + error.message, 'error');
+            // Sin precio nuevo: el precio mostrado envejece y las órdenes se bloquean.
+            const now = Date.now();
+            if (!this.lastPriceErrorAt || now - this.lastPriceErrorAt > 15000) {
+                this.lastPriceErrorAt = now;
+                this.showMessage('Error al obtener precio: ' + error.message, 'error');
+            }
         }
     }
 
@@ -201,7 +209,21 @@ class ManualSpotTrader {
         }
     }
 
+    /** ¿Hay precio fresco? Si no, avisa y bloquea la operación. */
+    requireFreshPrice(label = 'Operación') {
+        const state = LiveGuard.evaluate({
+            lastPriceAt: this.lastPriceAt,
+            now: Date.now(),
+            maxAgeMs: LiveGuard.DEFAULT_MAX_AGE_MS
+        });
+        if (state.ok) return true;
+        this.showMessage(`${LiveGuard.blockMessage(state)} ${label} cancelada.`, 'error');
+        return false;
+    }
+
     executeTrade(type) {
+        if (!this.requireFreshPrice(type === 'buy' ? 'Compra' : 'Venta')) return;
+
         const price = parseFloat(document.getElementById('orderPrice-manual-spot').value) || 0;
         const quantity = parseFloat(document.getElementById('orderQuantity-manual-spot').value) || 0;
         const total = price * quantity;
@@ -1095,6 +1117,8 @@ class ManualSpotTrader {
     }
 
     closePositionById(positionId, reason = 'manual') {
+        if (!this.requireFreshPrice('Cierre de posición')) return;
+
         const positionIndex = this.activePositions.findIndex(p => p.id === positionId);
         if (positionIndex === -1) {
             this.showMessage('Posición no encontrada', 'error');

@@ -7,6 +7,8 @@
 class ManualFuturesTrader {
     constructor() {
         this.currentPrice = 0;
+        this.lastPriceAt = null;      // última lectura válida de Binance
+        this.lastPriceErrorAt = 0;    // para no repetir el aviso en cada tick
         this.availableMargin = 0;
         this.usedMargin = 0;
         this.unrealizedPnl = 0;
@@ -130,6 +132,7 @@ class ManualFuturesTrader {
             const response = await BinanceAPI.fetch(`https://api.binance.com/api/v3/ticker/price?symbol=${this.symbol}`);
             const data = await response.json();
             this.currentPrice = parseFloat(data.price);
+            this.lastPriceAt = Date.now();
             
             // Update connection status
             this.updateConnectionStatus(true);
@@ -151,7 +154,11 @@ class ManualFuturesTrader {
             
         } catch (error) {
             this.updateConnectionStatus(false);
-            this.showMessage('Error al obtener precio: ' + error.message, 'error');
+            const now = Date.now();
+            if (!this.lastPriceErrorAt || now - this.lastPriceErrorAt > 15000) {
+                this.lastPriceErrorAt = now;
+                this.showMessage('Error al obtener precio: ' + error.message, 'error');
+            }
         }
     }
 
@@ -200,7 +207,21 @@ class ManualFuturesTrader {
         }
     }
 
+    /** ¿Hay precio fresco? Si no, avisa y bloquea la operación. */
+    requireFreshPrice(label = 'Operación') {
+        const state = LiveGuard.evaluate({
+            lastPriceAt: this.lastPriceAt,
+            now: Date.now(),
+            maxAgeMs: LiveGuard.DEFAULT_MAX_AGE_MS
+        });
+        if (state.ok) return true;
+        this.showMessage(`${LiveGuard.blockMessage(state)} ${label} cancelada.`, 'error');
+        return false;
+    }
+
     executeTrade(type) {
+        if (!this.requireFreshPrice(type === 'buy' ? 'Apertura long' : 'Apertura short')) return;
+
         const price = parseFloat(document.getElementById('orderPrice-manual-futures').value) || 0;
         const margin = parseFloat(document.getElementById('orderMargin-manual-futures').value) || 0;
         const size = parseFloat(document.getElementById('orderSize-manual-futures').value) || 0;
@@ -252,6 +273,8 @@ class ManualFuturesTrader {
     }
 
     closePosition(positionId, reason = 'manual') {
+        if (!this.requireFreshPrice('Cierre de posición')) return;
+
         const positionIndex = this.activePositions.findIndex(p => p.id === positionId);
         if (positionIndex === -1) return;
         

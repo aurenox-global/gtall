@@ -21,9 +21,13 @@ export function connectStatusBadge({ badgeId = 'connectionStatus', detailId = 'c
 
   const render = status => {
     let state = 'online';
-    if (!status.lastSuccessAt) state = 'connecting';
-    else if (!status.online) state = 'offline';
-    else if (status.stale) state = 'stale';
+    if (!status.online && (status.consecutiveFailures > 0 || status.lastError)) {
+      state = 'offline';
+    } else if (!status.lastSuccessAt) {
+      state = 'connecting';
+    } else if (status.stale) {
+      state = 'stale';
+    }
 
     badge.textContent = LABELS[state];
     badge.dataset.state = state;
