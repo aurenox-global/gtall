@@ -17,6 +17,8 @@ class DCABot {
         this.executions = [];
         this.nextExecution = null;
         this.currentPrice = 0;
+        this.lastPriceAt = null;      // última lectura válida de Binance
+        this.lastPriceErrorAt = 0;
         
         this.init();
     }
@@ -65,6 +67,7 @@ class DCABot {
             const response = await BinanceAPI.fetch(`https://api.binance.com/api/v3/ticker/price?symbol=${this.symbol}`);
             const data = await response.json();
             this.currentPrice = parseFloat(data.price);
+            this.lastPriceAt = Date.now();
         } catch (error) {
             console.error('Error fetching price:', error);
         }
@@ -113,9 +116,22 @@ class DCABot {
         this.nextExecution = new Date(Date.now() + interval);
     }
 
+    /** ¿Hay precio fresco? Si no, avisa y bloquea la operación. */
+    requireFreshPrice(label = 'Operación') {
+        const state = LiveGuard.evaluate({
+            lastPriceAt: this.lastPriceAt,
+            now: Date.now(),
+            maxAgeMs: LiveGuard.DEFAULT_MAX_AGE_MS
+        });
+        if (state.ok) return true;
+        this.showMessage(`${LiveGuard.blockMessage(state)} ${label} cancelada.`, 'error');
+        return false;
+    }
+
     async executeDCA() {
         await this.getCurrentPrice();
-        
+        if (!this.requireFreshPrice('Compra DCA')) return;
+
         const quantity = this.amount / this.currentPrice;
         this.totalInvested += this.amount;
         this.totalQuantity += quantity;
